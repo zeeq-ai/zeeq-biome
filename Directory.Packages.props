@@ -1,0 +1,21 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Library dependencies: keep at the lowest supported version for broad adoption. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+
+    <!-- Test-only dependencies. -->
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
+    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageVersion Include="Testcontainers.PostgreSql" Version="4.12.0" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.3.0" />
+    <PackageVersion Include="TUnit" Version="1.56.0" />
+
+    <!-- Transitive pins for security advisories (test-only dependency chains). -->
+    <PackageVersion Include="SSH.NET" Version="2026.0.0" />
+    <PackageVersion Include="SQLitePCLRaw.lib.e_sqlite3" Version="2.1.13" />
+  </ItemGroup>
+</Project>

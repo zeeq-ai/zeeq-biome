@@ -1,0 +1,3 @@
+[tools]
+dotnet = "10.0.302"
+"dotnet:Csharpier" = "1.3.0"

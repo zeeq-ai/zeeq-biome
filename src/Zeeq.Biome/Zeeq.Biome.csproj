@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PackageId>Zeeq.Biome</PackageId>
+    <Description>Terse, readable test scenario setup: recreate your entity graph in miniature with blueprints, typed parent/child chaining, sequences, and a pluggable store.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <InternalsVisibleTo Include="Zeeq.Biome.Tests" />
+  </ItemGroup>
+</Project>

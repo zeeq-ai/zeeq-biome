@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Zeeq.Biome.EntityFrameworkCore/Zeeq.Biome.EntityFrameworkCore.csproj" />
+    <Project Path="src/Zeeq.Biome/Zeeq.Biome.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Zeeq.Biome.EntityFrameworkCore.Tests/Zeeq.Biome.EntityFrameworkCore.Tests.csproj" />
+    <Project Path="tests/Zeeq.Biome.Tests/Zeeq.Biome.Tests.csproj" />
+  </Folder>
+</Solution>
