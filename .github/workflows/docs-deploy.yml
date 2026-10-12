@@ -1,0 +1,42 @@
+# Reusable workflow: builds the documentation site and deploys it to GitHub
+# Pages. Called by release.yml (after NuGet publish succeeds) and docs.yml
+# (manual redeploy). One-time setup: GitHub -> Settings -> Pages -> Build and
+# deployment -> Source: GitHub Actions. The github-pages environment is created
+# by GitHub the first time Pages is enabled; keep its deployment branches on main.
+
+name: Docs deploy
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build documentation
+    uses: ./.github/workflows/docs-build.yml
+    with:
+      upload: true
+
+  deploy:
+    name: Deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # Never cancel a deployment that is already running.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - name: Configure Pages
+        uses: actions/configure-pages@v6
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

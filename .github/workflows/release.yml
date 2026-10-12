@@ -1,0 +1,270 @@
+# This workflow computes a Conventional Commit SemVer, validates the Release
+# build, publishes both NuGet packages, then creates the v* tag and GitHub
+# Release. One-time setup before the first run:
+#   1. nuget.org -> Trusted Publishing: add a policy for repository owner
+#      zeeq-ai, repository zeeq-biome, workflow file release.yml, environment
+#      nuget. No API key is stored; NuGet/login exchanges the job's OIDC token
+#      for a short-lived key.
+#   2. GitHub -> Settings -> Secrets and variables -> Actions: add NUGET_USER
+#      (the nuget.org username, not the email address).
+#   3. GitHub -> Settings -> Environments: create "nuget", add required
+#      reviewers, and restrict deployments to main. The publish job waits for
+#      approval there before pushing to nuget.org.
+#   4. GitHub -> Settings -> Pages -> Build and deployment -> Source: GitHub
+#      Actions. After the packages publish, the docs job deploys the
+#      documentation site (docs/) through docs-deploy.yml.
+
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel
+        type: choice
+        options:
+          - stable
+          - rc
+        required: true
+      version_override:
+        description: Optional SemVer override, without leading v
+        required: false
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  plan:
+    name: Plan release
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      # Releases must be dispatched from main, even when started from the UI.
+      - name: Validate release branch
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Releases must run from main. Current ref: $GITHUB_REF" >&2
+            exit 1
+          fi
+
+      # Semantic versioning needs the full commit history and existing tags.
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Determine base semantic version
+        id: semver
+        uses: paulhatch/semantic-version@v6.0.2
+        with:
+          tag_prefix: "v"
+          version_format: "${major}.${minor}.${patch}"
+          major_pattern: "/!:|BREAKING CHANGE:/"
+          minor_pattern: "/^feat(\\(.+\\))?:/"
+
+      # Stable uses the computed base; RC uses the next vX.Y.Z-rc.N tag.
+      # An override bypasses calculation, but still must be a valid unused tag.
+      - name: Resolve final version
+        id: version
+        shell: bash
+        env:
+          RELEASE_CHANNEL: ${{ inputs.channel }}
+          RELEASE_VERSION_OVERRIDE: ${{ inputs.version_override }}
+          BASE_VERSION: ${{ steps.semver.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          channel="$RELEASE_CHANNEL"
+          override="$RELEASE_VERSION_OVERRIDE"
+          base_version="$BASE_VERSION"
+
+          if [[ -n "$override" ]]; then
+            version="$override"
+          elif [[ "$channel" == "stable" ]]; then
+            version="$base_version"
+          else
+            last_rc="$(
+              git tag --list "v${base_version}-rc.*" |
+                sed -E "s/^v${base_version}-rc\\.([0-9]+)$/\\1/" |
+                sort -n |
+                tail -n 1
+            )"
+            next_rc=$(( ${last_rc:-0} + 1 ))
+            version="${base_version}-rc.${next_rc}"
+          fi
+
+          if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "Invalid SemVer: $version" >&2
+            exit 1
+          fi
+
+          tag="v${version}"
+          if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+            echo "Git tag already exists: $tag" >&2
+            exit 1
+          fi
+
+          {
+            echo "version=$version"
+            echo "tag=$tag"
+          } >> "$GITHUB_OUTPUT"
+          {
+            echo "## Release Plan"
+            echo ""
+            echo "- Channel: ${channel}"
+            echo "- Version: ${version}"
+            echo "- Tag: ${tag}"
+            echo "- Commit: ${GITHUB_SHA}"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  validate:
+    name: Validate Release build
+    runs-on: ubuntu-latest
+    needs: plan
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Restore tools
+        run: dotnet tool restore
+
+      - name: Check formatting
+        run: dotnet csharpier check .
+
+      - name: Restore dependencies
+        run: dotnet restore zeeq-biome.slnx
+
+      - name: Build Release
+        run: dotnet build zeeq-biome.slnx -c Release --no-restore -warnaserror -p:Version=${{ needs.plan.outputs.version }}
+
+      - name: Run tests
+        run: dotnet test --solution zeeq-biome.slnx -c Release --no-build -p:Version=${{ needs.plan.outputs.version }}
+
+  publish:
+    name: Publish NuGet packages and GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - plan
+      - validate
+    environment: nuget
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+
+      - name: Pack release
+        run: dotnet pack zeeq-biome.slnx -c Release -p:Version=${{ needs.plan.outputs.version }} -o artifacts
+
+      # The flat-container API is public. Check each package independently so
+      # a retry after a partial publish only pushes the package still missing.
+      - name: Check NuGet package versions
+        id: nuget-check
+        env:
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+        run: |
+          set -euo pipefail
+          missing=""
+          for package in zeeq.biome zeeq.biome.entityframeworkcore; do
+            url="https://api.nuget.org/v3-flatcontainer/${package}/${RELEASE_VERSION}/${package}.${RELEASE_VERSION}.nupkg"
+            status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' "$url")"
+            if [[ "$status" == "404" ]]; then
+              missing+=" ${package}"
+            elif [[ "$status" != "200" ]]; then
+              echo "Unexpected NuGet response for ${package} ${RELEASE_VERSION}: HTTP ${status}" >&2
+              exit 1
+            fi
+          done
+          echo "missing=${missing# }" >> "$GITHUB_OUTPUT"
+
+      - name: Authenticate to NuGet.org
+        if: needs.plan.outputs.version != '' && steps.nuget-check.outputs.missing != ''
+        id: nuget-login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push missing packages
+        if: steps.nuget-check.outputs.missing != ''
+        env:
+          API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          RELEASE_VERSION: ${{ needs.plan.outputs.version }}
+          MISSING_PACKAGES: ${{ steps.nuget-check.outputs.missing }}
+        run: |
+          set -euo pipefail
+          for package in $MISSING_PACKAGES; do
+            # Match the exact package file so zeeq.biome never picks up
+            # zeeq.biome.entityframeworkcore.
+            mapfile -t files < <(find artifacts -maxdepth 1 -type f \
+              -iname "${package}.${RELEASE_VERSION}.nupkg" -print)
+            if (( ${#files[@]} == 0 )); then
+              echo "No package files found for ${package}" >&2
+              exit 1
+            fi
+            for file in "${files[@]}"; do
+              # NuGet.org publishes the matching .snupkg alongside the .nupkg
+              # when both files are present in the same directory.
+              dotnet nuget push "$file" \
+                --api-key "$API_KEY" \
+                --source https://api.nuget.org/v3/index.json \
+                --skip-duplicate
+            done
+          done
+
+      - name: Create version tag
+        env:
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git tag "$RELEASE_TAG" "$GITHUB_SHA"
+          git push origin "$RELEASE_TAG"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          set -euo pipefail
+          args=("$RELEASE_TAG" --target "$GITHUB_SHA" --title "$RELEASE_TAG" --generate-notes)
+          if [[ "$CHANNEL" == "rc" || "$RELEASE_TAG" == *-rc.* ]]; then
+            args+=(--prerelease)
+          else
+            args+=(--fail-on-no-commits)
+          fi
+          gh release create "${args[@]}"
+
+  # Runs only after the packages are published. A docs failure never undoes the
+  # publish; re-run it from here or with the Docs workflow (docs.yml).
+  docs:
+    name: Deploy documentation
+    needs: publish
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs-deploy.yml
