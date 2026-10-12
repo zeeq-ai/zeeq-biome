@@ -1,6 +1,6 @@
 # Zeeq Biome test scenarios
 
-Worked setups for common test shapes. They use the README's example domain: `ZeeqSeed`, the `Blueprints` class, the `AddCodeRepository` / `AddPullRequest` / `AddCodeReview` / `AddActiveLock` / `AddUser(s)` sugar, `AddLockedReview`, and the `PullRequests` traits. Use whatever names your app's `TestBiome` and sugar provide.
+Worked setups for common test shapes. They use the README's example domain: `ZeeqSeed`, the `Blueprints` catalog, generated grafts `AddCodeRepository` / `AddPullRequest` / `AddCodeReview` / `AddActiveLock` / `AddUser(s)`, `AddLockedReview`, and the `PullRequests` traits. Use the graft names and scenario helpers your app defines.
 
 ## 1. A store test that needs a deep chain
 
@@ -151,7 +151,7 @@ await TestBiome.Start(out _)
     .BuildAsync();
 ```
 
-Inputs aren't rows: `Under`, `Transient()`, `All<T>()` and `Last<T>()` work on the outputs, and `All<Input>()` is empty. Ordinary-entity inputs and `ChildFromInput` need the prerelease `Zeeq.Biome` `1.1.0-rc.1` (pinned explicitly; 1.0.1 doesn't have them).
+Inputs aren't rows: `Under`, `Transient()`, `All<T>()` and `Last<T>()` work on the outputs, and `All<Input>()` is empty. Ordinary-entity inputs and `ChildFromInput` require a referenced package that exposes those forms; check the package API without inferring a public version from this branch.
 
 ## 8. A pure unit test (no database)
 

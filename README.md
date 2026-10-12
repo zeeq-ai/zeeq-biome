@@ -19,14 +19,9 @@ dotnet add package Zeeq.Biome
 dotnet add package Zeeq.Biome.EntityFrameworkCore   # optional: save with a DbContext
 ```
 
-Requires .NET 10 and C# 14. The core package has no dependencies. Works with any test framework; the examples use [TUnit](https://tunit.dev).
+Targets .NET 10. The core package has no dependencies. The extension-block examples use C# 14; generated graft methods use regular extension methods. Works with any test framework; the examples use [TUnit](https://tunit.dev).
 
-Input blueprints for ordinary entities and typed children (see below) are in the prerelease `1.1.0-rc.1`, not in `1.0.1`. Package managers don't select a prerelease by default, so pin it explicitly, and use the same version for the EF Core package:
-
-```sh
-dotnet add package Zeeq.Biome --version 1.1.0-rc.1
-dotnet add package Zeeq.Biome.EntityFrameworkCore --version 1.1.0-rc.1
-```
+Ordinary-entity input blueprints and typed child inputs require a referenced `Zeeq.Biome` package that exposes those API forms. Check the API for the package selected by your project, and use the matching version for `Zeeq.Biome.EntityFrameworkCore` when needed. This README does not identify a package release for those APIs.
 
 ## Step by step
 
@@ -78,8 +73,10 @@ public static partial class TestBiome
 A blueprint is a `static readonly` value with **one factory** per type. The factory gets a context (`ctx`) with the seed, the clock and ID generation.
 
 ```csharp
-public static partial class Blueprints
+[BiomeGraft]
+public static class Blueprints
 {
+    [Graft("CodeRepository", Plural = "CodeRepositories")]
     public static readonly Blueprint<ZeeqSeed, CodeRepository> Repository =
         Blueprint.For<ZeeqSeed, CodeRepository>(ctx => new()
         {
@@ -99,7 +96,7 @@ public sealed class CodeRepositoryTests
     public async Task Repository_belongs_to_seed_organization()
     {
         await TestBiome.Start(out var seed)
-            .AddOne(Blueprints.Repository, out var repo)
+            .AddCodeRepository(out var repo)
             .BuildAsync();
 
         await Assert.That(repo.OrganizationId).IsEqualTo(seed.Organization.Id);
@@ -118,14 +115,16 @@ public sealed class CodeRepositoryTests
 - **Adds are eager.** `repo` exists as soon as `AddOne` returns, and `BuildAsync` saves everything once. Calling it a second time throws.
 - **Every Add takes an `out`.** Write `out _` when the test doesn't need the value.
 
+`[BiomeGraft]` on the catalog generates the `AddCodeRepository` methods from its blueprint fields. Roots are available from any anchor; a child graft is available only from its declared parent array. `[Graft("Name", Plural = "Names")]` overrides the method suffixes, and `[NoGraft]` excludes a catalog member. See [Generated grafts and scenario helpers](https://zeeq-ai.github.io/zeeq-biome/guides/scenario-helpers-and-sugar).
+
 ### 3. Customize only what the test is about
 
 The factory supplies the defaults, and the call site sets only the property being tested:
 
 ```csharp
 await TestBiome.Start(out _)
-    .AddOne(Blueprints.Repository, out var disabled, r => r.Enabled = false)
-    .Add(Blueprints.Repository, out var pair,
+    .AddCodeRepository(out var disabled, r => r.Enabled = false)
+    .AddCodeRepositories(out var pair,
         r => r.OwnerQualifiedName = "zeeq-ai/api",
         r => r.OwnerQualifiedName = "zeeq-ai/web")
     .BuildAsync();
@@ -201,6 +200,15 @@ A **child blueprint** takes its parent as a typed argument. `ctx.Ancestor<T>()` 
 ```csharp
 public static partial class Blueprints
 {
+    public static readonly ChildBlueprint<ZeeqSeed, CodeRepository, PullRequestRecord> PullRequest =
+        Blueprint.ChildOf<ZeeqSeed, CodeRepository, PullRequestRecord>((repo, ctx) => new()
+        {
+            Id = ctx.NewId("pr"),
+            RepositoryId = repo.Id,
+            CreatedAtUtc = ctx.Now,
+        });
+
+    [Graft("CodeReview", Plural = "CodeReviews")]
     public static readonly ChildBlueprint<ZeeqSeed, PullRequestRecord, CodeReviewRecord> Review =
         Blueprint.ChildOf<ZeeqSeed, PullRequestRecord, CodeReviewRecord>((pr, ctx) => new()
         {
@@ -212,6 +220,7 @@ public static partial class Blueprints
             CreatedAtUtc = ctx.Now,
         });
 
+    [Graft("ActiveLock", Plural = "ActiveLocks")]
     public static readonly ChildBlueprint<ZeeqSeed, CodeReviewRecord, ActiveCodeReviewLock> ActiveLock =
         Blueprint.ChildOf<ZeeqSeed, CodeReviewRecord, ActiveCodeReviewLock>((review, ctx) => new()
         {
@@ -231,81 +240,66 @@ public static partial class Blueprints
 
 ```csharp
 await TestBiome.Start(out _)
-    .AddOne(Blueprints.Repository, out var repo)
-    .AddOne(Blueprints.PullRequest, out var pr)        // parent: repo
-    .AddOne(Blueprints.Review, out var review)         // parent: pr
-    .AddOne(Blueprints.ActiveLock, out var activeLock) // parent: review
+    .AddCodeRepository(out var repo)
+    .AddPullRequest(out var pr)        // parent: repo
+    .AddCodeReview(out var review)     // parent: pr
+    .AddActiveLock(out var activeLock) // parent: review
     .BuildAsync();
 ```
 
-- A child Add **compiles only when the current anchor is its parent type**. For example, adding a `Review` directly after a repository is a compile error.
+- A child graft **compiles only when the current anchor is its parent type**. For example, adding a review directly after a repository is a compile error.
 - `.Under(x)` jumps back to an earlier Add output, or to a seed row listed in `SeedEntities`, so you can add siblings or start another branch. Objects the session didn't create are rejected.
 - **Fan-out is per parent.** Each customizer runs once for each parent, and the results come back as one flat array ordered by parent:
 
 ```csharp
 await TestBiome.Start(out _)
-    .Add(Blueprints.Repository, out var repos, 2)
-    .Add(Blueprints.PullRequest, out var prs, 3)   // 3 per repo → 6: prs[0..2] → repos[0], prs[3..5] → repos[1]
+    .AddCodeRepositories(out var repos, 2)
+    .AddPullRequests(out var prs, 3)   // 3 per repo → 6: prs[0..2] → repos[0], prs[3..5] → repos[1]
     .BuildAsync();
 ```
 
-A singular child `AddOne` throws unless the anchor holds exactly one parent.
+A singular child graft throws unless the anchor holds exactly one parent.
 
-### 5. Sugar: four one-liners per type, plus scenario helpers
+### 5. Generated grafts and scenario helpers
 
-Give each type four short extension methods: singular and plural, each with and without customizers. Child sugar is declared on the parent's anchor type, so IntelliSense offers `AddPullRequest` only right after a repository.
+The generator emits three graft methods for each eligible member with valid names in a `[BiomeGraft]` catalog: one singular method with an optional `Action<T>` customizer, and two plural methods (count or `params` customizers). For example, a `Repository` field renamed with `[Graft("CodeRepository", Plural = "CodeRepositories")]` produces `AddCodeRepository` and `AddCodeRepositories` in `BlueprintsGrafts`.
 
 ```csharp
-public static class CodeReviewSugar
+[BiomeGraft]
+public static class Blueprints
 {
-    // Root type: offered from any anchor.
-    extension<TAnchor>(BiomeBuilder<ZeeqSeed, TAnchor> b)
-    {
-        public BiomeBuilder<ZeeqSeed, CodeRepository[]> AddCodeRepository(
-            out CodeRepository repo) => b.AddOne(Blueprints.Repository, out repo);
+    [Graft("CodeRepository", Plural = "CodeRepositories")]
+    public static readonly Blueprint<ZeeqSeed, CodeRepository> Repository = null!;
 
-        public BiomeBuilder<ZeeqSeed, CodeRepository[]> AddCodeRepository(
-            out CodeRepository repo, Action<CodeRepository> customize) =>
-            b.AddOne(Blueprints.Repository, out repo, customize);
+    public static readonly ChildBlueprint<ZeeqSeed, CodeRepository, PullRequestRecord> PullRequest =
+        null!;
 
-        public BiomeBuilder<ZeeqSeed, CodeRepository[]> AddCodeRepositories(
-            out CodeRepository[] repos, int count) => b.Add(Blueprints.Repository, out repos, count);
+    [Graft("CodeReview", Plural = "CodeReviews")]
+    public static readonly ChildBlueprint<ZeeqSeed, PullRequestRecord, CodeReviewRecord> Review =
+        null!;
 
-        public BiomeBuilder<ZeeqSeed, CodeRepository[]> AddCodeRepositories(
-            out CodeRepository[] repos, params Action<CodeRepository>[] customize) =>
-            b.Add(Blueprints.Repository, out repos, customize);
-    }
+    [Graft("ActiveLock", Plural = "ActiveLocks")]
+    public static readonly ChildBlueprint<ZeeqSeed, CodeReviewRecord, ActiveCodeReviewLock> ActiveLock =
+        null!;
+}
+```
 
-    // Child type: offered only when the anchor is CodeRepository[].
-    extension(BiomeBuilder<ZeeqSeed, CodeRepository[]> b)
-    {
-        public BiomeBuilder<ZeeqSeed, PullRequestRecord[]> AddPullRequest(
-            out PullRequestRecord pr) => b.AddOne(Blueprints.PullRequest, out pr);
+Root graft methods are generic in the anchor and work from any step with the same seed; their count or customizer list applies once at the current anchor. Child graft methods accept only the parent-array anchor, fan out for each parent, and do not create ancestors. Child counts and customizers apply to each parent; a plural call with no customizers creates one default output per parent (or one for a root). A root and child with colliding method signatures on the same builder produce `BIOME001`.
 
-        public BiomeBuilder<ZeeqSeed, PullRequestRecord[]> AddPullRequest(
-            out PullRequestRecord pr, Action<PullRequestRecord> customize) =>
-            b.AddOne(Blueprints.PullRequest, out pr, customize);
+Use the core `Add` / `AddOne` API with a blueprint for a one-off context-aware customizer. Handwrite an `AddX` extension only for a repeated context-aware overload or another app-specific exception. Keep named multi-step chains as scenario helpers:
 
-        public BiomeBuilder<ZeeqSeed, PullRequestRecord[]> AddPullRequests(
-            out PullRequestRecord[] prs, int count) => b.Add(Blueprints.PullRequest, out prs, count);
-
-        public BiomeBuilder<ZeeqSeed, PullRequestRecord[]> AddPullRequests(
-            out PullRequestRecord[] prs, params Action<PullRequestRecord>[] customize) =>
-            b.Add(Blueprints.PullRequest, out prs, customize);
-    }
-
-    // …the same four for CodeReviewRecord (AddCodeReview/s) and ActiveCodeReviewLock (AddActiveLock/s).
-
-    // Scenario helper: a whole default chain, offered from the seed only.
-    extension(BiomeBuilder<ZeeqSeed, ZeeqSeed> b)
-    {
-        public BiomeBuilder<ZeeqSeed, ActiveCodeReviewLock[]> AddLockedReview(
-            out ActiveCodeReviewLock activeLock) =>
-            b.AddCodeRepository(out _)
-                .AddPullRequest(out _)
-                .AddCodeReview(out _)
-                .AddActiveLock(out activeLock);
-    }
+```csharp
+public static class CodeReviewScenarioHelpers
+{
+extension(BiomeBuilder<ZeeqSeed, ZeeqSeed> b)
+{
+    public BiomeBuilder<ZeeqSeed, ActiveCodeReviewLock[]> AddLockedReview(
+        out ActiveCodeReviewLock activeLock) =>
+        b.AddCodeRepository(out _)
+            .AddPullRequest(out _)
+            .AddCodeReview(out _)
+            .AddActiveLock(out activeLock);
+}
 }
 ```
 
@@ -416,7 +410,7 @@ _db.ChangeTracker.Clear();         // so the code under test reads rows from the
 
 ## Use cases and scenarios
 
-These examples use the sugar from step 5, the same four methods for `User` (`AddUser` / `AddUsers`), and these traits:
+These examples use the generated grafts from step 5, including `AddUser` / `AddUsers`, and these traits:
 
 ```csharp
 public static class PullRequests
@@ -537,7 +531,7 @@ await TestBiome.Start(_db, out _, time)
 // act: var sweeper = new StaleReviewSweeper(_db, time); time.Advance(…); await sweeper.RunAsync();
 ```
 
-The four sugar methods take `Action<T>`. For a one-off context-aware customizer, call `AddOne` / `Add` with the blueprint directly, as above. If a type's tests keep needing the clock, add one named context overload for it, as the library's `CodeReviews` tests do for the repository (`Action<CodeRepository, BiomeContext<CodeReviewSeed>>`).
+Generated graft customizers take `Action<T>` (or `Action<TInput>` for an input blueprint). For a one-off context-aware customizer, call core `AddOne` / `Add` with the blueprint directly. If tests repeatedly need the clock or parent for a type, add only a named handwritten context overload for that type.
 
 ### Unit tests with no database
 
@@ -594,7 +588,7 @@ Use hooks sparingly. Rows a test can't see make it harder to read. Rows added in
 
 ### Input blueprints: customize an input, then build the row
 
-> **Availability:** ordinary entity outputs from `FromInput` and `ChildFromInput` are in the prerelease **`Zeeq.Biome` `1.1.0-rc.1`** and are **not in `1.0.1`**, where `FromInput` accepts only `IBiomeAggregate` outputs. Pin `1.1.0-rc.1` explicitly (and use the same version for `Zeeq.Biome.EntityFrameworkCore`) to use the rest of this section.
+> **Package API:** ordinary entity outputs from `FromInput` and `ChildFromInput` require a referenced package that exposes those forms. Check the package API before using them, and align the EF Core package version. This README does not identify a package release for these APIs.
 
 A customizer runs after the factory, so it cannot set an init-only property. (A `required` member with a setter can still be customized.) An **input blueprint** lets tests customize a small settable input, then the factory reads it to build the row, so production models stay as they are. If `PullRequestRecord.PullRequestNumber` were `init`, as in zeeq-app's model, it would look like this:
 
@@ -705,6 +699,7 @@ Global defaults apply to the aggregate object itself, not to its parts. Parts ar
 | You want | Write |
 |---|---|
 | Start a test | `TestBiome.Start(out var seed)` / `TestBiome.Start(_db, out var seed, time)` |
+| Call without naming a blueprint | `[BiomeGraft]` catalog generates `{Catalog}Grafts`; use `[Graft]` for names and `[NoGraft]` to skip a member |
 | Root blueprint | `Blueprint.For<TSeed, T>(ctx => new() { … })` |
 | Child blueprint | `Blueprint.ChildOf<TSeed, TParent, T>((parent, ctx) => new() { … })` |
 | Root built from an input | `Blueprint.FromInput<TSeed, TInput, T>(() => new(), (input, ctx) => …)` |

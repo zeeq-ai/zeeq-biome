@@ -1,13 +1,13 @@
 ---
 name: zeeq-biome-tests
-description: Use when writing, reading, or fixing test setup that uses Zeeq.Biome. That means `TestBiome.Start(...)` chains, `AddX(out var x)` / `AddXs(out var xs, …)` sugar, `.Under(...)`, `.Transient()`, sequences, or `FakeTimeProvider` in a test. Also use when a test's setup fails to compile (a missing `AddX` after a step, an overload or lambda mismatch) or fails at runtime with a Biome exception, duplicate keys, or timestamp mismatches. For creating seeds, blueprints, sugar methods, or options, use zeeq-biome-blueprints instead.
+description: Use when writing, reading, or fixing test setup that uses Zeeq.Biome. That means `TestBiome.Start(...)` chains, generated graft methods such as `AddX(out var x)` / `AddXs(out var xs, …)`, `.Under(...)`, `.Transient()`, sequences, or `FakeTimeProvider` in a test. Also use when a test's setup fails to compile (a missing `AddX` after a step, an overload or lambda mismatch) or fails at runtime with a Biome exception, duplicate keys, or timestamp mismatches. For creating seeds, blueprints, graft catalogs, handwritten exception overloads, or options, use zeeq-biome-blueprints instead.
 ---
 
 # Writing test scenarios with Zeeq Biome
 
 Longer worked scenarios: `.agents/skills/zeeq-biome-tests/references/scenarios.md`. Library overview: the repo `README.md`.
 
-A test's setup is **one fluent chain**. It names only the entities the test asserts on, and sets only the properties under test. Everything else comes from blueprint defaults.
+A test's setup is **one fluent chain**. Generated grafts name the entities, and the chain sets only the properties under test. Everything else comes from blueprint defaults. Use the core `Add` / `AddOne` API with a blueprint when a one-off customizer needs context.
 
 ```csharp
 await TestBiome.Start(_db, out var seed)
@@ -28,7 +28,7 @@ await TestBiome.Start(_db, out var seed)
 ## Writing a chain
 
 1. **Start** with `TestBiome.Start(_db, out var seed)` when you need the database, `TestBiome.Start(out var seed)` when you don't, and add `time` when the clock matters.
-2. **Prefer singular sugar** (`AddPullRequest(out var pr)` returns `T`). Use plural (`AddPullRequests(out var prs, 3)`) only when the test needs several. Never write `prs[0]` to get a single entity.
+2. **Prefer singular grafts** (`AddPullRequest(out var pr)` returns `T`). Use plural (`AddPullRequests(out var prs, 3)`) only when the test needs several. Never write `prs[0]` to get a single entity.
 3. **`out _` for anything you won't assert on.** Every Add needs an `out`.
 4. **Set only the property under test.** Never restate a default. Use named traits when the app has them (`PullRequests.Closed`).
 5. **Comma = a new entity. `+` = stack traits on the same entity.** `AddPullRequests(out var prs, PullRequests.Closed, PullRequests.Closed + PullRequests.Draft)` creates 2 PRs.
@@ -44,9 +44,9 @@ await TestBiome.Start(_db, out var seed)
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| `CS1929: 'BiomeBuilder<ZeeqSeed, X[]>' does not contain a definition for 'AddY' … requires a receiver of type 'BiomeBuilder<ZeeqSeed, Parent[]>'` | The anchor isn't Y's parent type. Child sugar exists only after its parent's step. | Add the parent first, or `.Under(parent)`. Use a scenario helper (`AddLockedReview`) if there is one. |
+| `CS1929: 'BiomeBuilder<ZeeqSeed, X[]>' does not contain a definition for 'AddY' … requires a receiver of type 'BiomeBuilder<ZeeqSeed, Parent[]>'` | The anchor isn't Y's parent type. Child grafts exist only after their parent's step. | Add the parent first, or `.Under(parent)`. Use a scenario helper (`AddLockedReview`) if there is one. |
 | `CS1503: cannot convert from 'lambda expression' to 'out X'` | Missing `out`. Every Add takes one first. | `AddX(out _, x => …)` |
-| `CS1593: Delegate 'Action<X>' does not take 2 arguments` | Either `x => …` and `(x, ctx) => …` were mixed in one call (C# can't), or a `(x, ctx) =>` lambda was passed to app sugar that has no context overload (sugar takes `Action<T>` unless the app added one for that type). | Write every customizer in the `(x, ctx) =>` form and call the core API: `.AddOne(Blueprints.X, out var x, (x, ctx) => …)` / `.Add(Blueprints.X, out var xs, …)`. |
+| `CS1593: Delegate 'Action<X>' does not take 2 arguments` | Either `x => …` and `(x, ctx) => …` were mixed in one call (C# can't), or a `(x, ctx) =>` lambda was passed to a generated graft (grafts take `Action<T>` or `Action<TInput>` unless the app added a context overload). | Write every customizer in the `(x, ctx) =>` form and call the core API: `.AddOne(Blueprints.X, out var x, (x, ctx) => …)` / `.Add(Blueprints.X, out var xs, …)`. |
 | `CS8852: Init-only property … can only be assigned in an object initializer` | The entity property is `init`, so a customizer can't set it. | Ask the blueprint author for an input blueprint so the test customizes an input and the factory builds the row. Don't change the production property to `set` just for the test (see zeeq-biome-blueprints). |
 | `Parent at index N of type X is not owned by this biome session` | `.Under(...)` was given an object this session didn't create: something built by hand, an aggregate part, or an entity from another test. | Use an `out` from an Add, or a seed row listed in `SeedEntities`. For aggregates, anchor on the aggregate itself. |
 | An Add throws, and then every later call throws with it as the inner exception | A factory, trait, customizer or `Derive` threw, which faults the session. | Fix the first exception, the inner one. Don't catch it and continue; use a new `Start`. |
@@ -66,7 +66,7 @@ await TestBiome.Start(_db, out var seed)
 - [ ] One `Start` and one `BuildAsync` per scenario.
 - [ ] Only asserted entities are named. Everything else is `out _`.
 - [ ] Each customizer sets only properties the test depends on.
-- [ ] No `[0]` indexing for single entities. Use singular sugar.
+- [ ] No `[0]` indexing for single entities. Use a singular graft.
 - [ ] No `DateTimeOffset.UtcNow` or hand-written numbers in setup. The clock, if any, is shared with the code under test.
 - [ ] Inputs that the code under test inserts are `.Transient()`.
 - [ ] With EF: `_db.ChangeTracker.Clear()` after `BuildAsync()` when the code under test reads.

@@ -11,7 +11,9 @@ Tests.Common/Biome/
   CodeReviews/
     Blueprints.cs         sequences, blueprints, variants (one file: init order)
     Traits.cs             PullRequests.Closed, …
-    Sugar.cs              four one-liners per type + scenario helpers
+    BlueprintsGrafts      generated from Blueprints.cs; don't edit generated code
+    ContextExtensions.cs  handwritten context overloads, when needed
+    ScenarioHelpers.cs    named multi-step chains, when needed
   Membership/ …
 ```
 
@@ -135,60 +137,55 @@ Variant and trait forms:
 - A `next` function that cycles through reserved values throws instead of hanging.
 - Non-numeric sequences work too, for example a rank: `Sequence.Of("a", r => r + "a").PerParent()` (see `tests/Zeeq.Biome.Tests/Board/`).
 
-## Sugar template
+## Generated grafts
 
 ```csharp
-public static class CodeReviewSugar
+[BiomeGraft]
+public static class Blueprints
 {
-    extension<TAnchor>(BiomeBuilder<ZeeqSeed, TAnchor> b)            // root: any anchor
-    {
-        public BiomeBuilder<ZeeqSeed, CodeRepository[]> AddCodeRepository(
-            out CodeRepository repo) => b.AddOne(Blueprints.Repository, out repo);
+    [Graft("CodeRepository", Plural = "CodeRepositories")]
+    public static readonly Blueprint<ZeeqSeed, CodeRepository> Repository = null!;
 
-        public BiomeBuilder<ZeeqSeed, CodeRepository[]> AddCodeRepository(
-            out CodeRepository repo, Action<CodeRepository> customize) =>
-            b.AddOne(Blueprints.Repository, out repo, customize);
+    public static readonly ChildBlueprint<ZeeqSeed, CodeRepository, PullRequestRecord> PullRequest =
+        null!;
 
-        public BiomeBuilder<ZeeqSeed, CodeRepository[]> AddCodeRepositories(
-            out CodeRepository[] repos, int count) => b.Add(Blueprints.Repository, out repos, count);
-
-        public BiomeBuilder<ZeeqSeed, CodeRepository[]> AddCodeRepositories(
-            out CodeRepository[] repos, params Action<CodeRepository>[] customize) =>
-            b.Add(Blueprints.Repository, out repos, customize);
-    }
-
-    extension(BiomeBuilder<ZeeqSeed, CodeRepository[]> b)            // child: only after a repository
-    {
-        public BiomeBuilder<ZeeqSeed, PullRequestRecord[]> AddPullRequest(
-            out PullRequestRecord pr) => b.AddOne(Blueprints.PullRequest, out pr);
-
-        public BiomeBuilder<ZeeqSeed, PullRequestRecord[]> AddPullRequest(
-            out PullRequestRecord pr, Action<PullRequestRecord> customize) =>
-            b.AddOne(Blueprints.PullRequest, out pr, customize);
-
-        public BiomeBuilder<ZeeqSeed, PullRequestRecord[]> AddPullRequests(
-            out PullRequestRecord[] prs, int count) => b.Add(Blueprints.PullRequest, out prs, count);
-
-        public BiomeBuilder<ZeeqSeed, PullRequestRecord[]> AddPullRequests(
-            out PullRequestRecord[] prs, params Action<PullRequestRecord>[] customize) =>
-            b.Add(Blueprints.PullRequest, out prs, customize);
-    }
+    [NoGraft]
+    public static readonly Blueprint<ZeeqSeed, CodeRepository> InternalVariant = null!;
 }
 ```
 
-- Name the methods `Add<Singular>` and `Add<Plural>`, using the domain's own word (`AddPendingInvitation`, not `AddOrganizationMembership`).
-- Singular methods return `T` through `out`; plural methods return `T[]`. Both re-anchor to `T[]`.
-- The core API underneath:
-  - `Add(bp, out T[])`, `Add(bp, out T[], int)`, `Add(bp, out T[], params Action<T>[])`, and `Add(bp, out T[], params Action<T, ctx>[])`.
-  - `AddOne(bp, out T[, Action<T>?])` and `AddOne(bp, out T, Action<T, ctx>)`. The ctx form requires a customizer.
-  - Input blueprints (`InputBlueprint`, `ChildInputBlueprint`) have the same shapes, with customizers over `TInput` (`Action<TInput>`, or `Action<TInput, BiomeContext<TSeed>>` / `Action<TInput, ChildContext<TSeed, TParent>>`). `out` and the new anchor hold the output.
-- A singular child `AddOne` throws unless the anchor has exactly one parent.
+- The core project references the generator as an analyzer and includes it when the project is packaged; there is no separate generator package. It emits `BlueprintsGrafts` in the same namespace.
+- A catalog must be a top-level, non-generic, non-file-local `static class`. Eligible members are public, internal, or protected-internal `static readonly` fields and static getter-only properties with no setter. Their type must be `Blueprint`, `InputBlueprint`, `ChildBlueprint`, or `ChildInputBlueprint`. Traits, sequences, private members, mutable fields, and other types are skipped.
+- Each eligible blueprint with valid graft names gets three generated methods: `AddName(out T, Action<T>? customize = null)`, `AddNames(out T[], int count)`, and `AddNames(out T[], params Action<T>[] customize)`. For input blueprints, the customizer type is `TInput`, while `out` and the builder anchor use output type `T`. Generated method accessibility follows the member; the generated class follows the catalog.
+- The singular method returns a builder anchored on `T[]`. Root and root-input methods are generic in `TAnchor`, so they work from any anchor with the same seed; their count/customizer list applies once to the current anchor. Child and child-input methods require `BiomeBuilder<TSeed, TParent[]>`, fan out for each parent, and do not create ancestors. A child count or customizer applies to each parent, and singular child calls require exactly one parent at runtime. With no plural customizers, roots create one default output and children create one per parent.
+- `[Graft]` has an optional positional name and an optional settable `Plural` argument; these override the generated suffixes after `Add`. Otherwise the field/property name is used with simple English pluralization. Use it for domain-friendly or irregular names. `[NoGraft]` excludes an otherwise eligible member. Output type names do not determine graft names.
+- Plural graft calls preserve the core `Add` behavior: for children, count and customizers apply per parent; calling the `params` form without customizers creates one default output per parent. For roots, count/customizers apply once at the current anchor, and an empty `params` list creates one default output. Every call takes `out`.
+
+The generated set has no context-aware customizers. Use the core `Add` / `AddOne` with the blueprint for a one-off context-aware callback:
+
+```csharp
+await TestBiome.Start(out _)
+    .AddOne(Blueprints.PullRequest, out var pr, (pr, ctx) =>
+        pr.CreatedAtUtc = ctx.Ago(TimeSpan.FromDays(30)))
+    .BuildAsync();
+```
+
+Only write a handwritten `AddX` extension for a repeated context overload or another app-specific exception. Keep scenario helpers separate: they are named, app-level chains declared on the seed anchor, with every ancestor step visible in the helper body. A singular child `AddOne` throws unless the anchor has exactly one parent.
+
+The generator reports these enabled diagnostics:
+
+| ID | Severity | Meaning |
+|---|---|---|
+| `BIOME001` | Warning | Members produce overlapping graft signatures on the same builder; rename one with `[Graft("Name")]`. |
+| `BIOME002` | Warning | The singular and plural suffixes match; choose a distinct `[Graft(Plural = "Names")]`. |
+| `BIOME003` | Error | The annotated catalog is not a supported top-level static class. |
+| `BIOME004` | Error | A singular or plural suffix is not a valid C# identifier. |
 
 ## Input blueprints
 
 Use an input when the output has init-only properties (including positional record properties) that tests vary, when one choice drives several values, or when the output is a group of rows. The test customizes a small settable **input**; the factory reads it and builds the row. Production models don't change.
 
-> Ordinary entity outputs and `ChildFromInput` are in the prerelease `Zeeq.Biome` `1.1.0-rc.1` (pin it explicitly, with the same version for `Zeeq.Biome.EntityFrameworkCore`). They are not in 1.0.1, whose `FromInput` requires an `IBiomeAggregate` output.
+> Ordinary entity outputs and `ChildFromInput` require a referenced package that exposes those forms. Check the selected package API before recommending an install command, and match the EF Core package version when used. Do not infer a public package version from this branch.
 
 ```csharp
 public sealed class EnrollmentInput          // construction data: settable, nothing required
