@@ -186,7 +186,7 @@ public static class CodeReviewSugar
 
 ## Input blueprints
 
-Use an input when the output row is immutable (`required`, `init`, a record), when one choice drives several values, or when the output is a group of rows. The test customizes a small settable **input**; the factory reads it and builds the row. Production models don't change.
+Use an input when the output has init-only properties (including positional record properties) that tests vary, when one choice drives several values, or when the output is a group of rows. The test customizes a small settable **input**; the factory reads it and builds the row. Production models don't change.
 
 > Ordinary entity outputs and `ChildFromInput` are not in `Zeeq.Biome` 1.0.1; 1.0.1 `FromInput` requires an `IBiomeAggregate` output.
 
@@ -221,7 +221,7 @@ public static readonly ChildInputBlueprint<SchoolSeed, SchoolClass, EnrollmentIn
 - Order in one Add step: every input is created and gets its traits and customizers; `Derive(prop, sequence)` reserves explicit values across the whole step; then, per input in order, its `Derive`s run and the factory builds the output; global defaults then apply to the output, which is recorded.
 - Input factories, derives, traits and customizers see only earlier completed steps through `ctx.All<T>()` / `ctx.Last<T>()`. Wire relationships through the typed parent and `ctx.Ancestor<T>()`.
 - An input isn't recorded or saved and can't be a parent. A root input blueprint doesn't get a parent from `.Under(…)`; use `ChildFromInput` for that.
-- `Derive` on an input fills only an unset property (`default`). An explicit `0`, `false` or `null` is indistinguishable from unset, so use nullable input properties when a test must choose those values.
+- `Derive` on an input fills only an unset property (`default`). On an `int?`/`bool?` input an explicit `0` or `false` is kept, but an explicit `null` is still refilled if a `Derive` targets that property. Global `Default`s can also replace `null`, `0` or `false` on the output. Biome has no presence API.
 - `.With`, `.Derive` and `.AsTransient()` work on both input forms.
 
 ### Aggregates

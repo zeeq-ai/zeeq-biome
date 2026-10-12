@@ -589,7 +589,7 @@ Use hooks sparingly. Rows a test can't see make it harder to read. Rows added in
 
 > **Availability:** ordinary entity outputs from `FromInput` and `ChildFromInput` are **not in `Zeeq.Biome` 1.0.1**. In 1.0.1, `FromInput` accepts only `IBiomeAggregate` outputs. Use the rest of this section once a release newer than 1.0.1 is published.
 
-A customizer runs after the factory, so it cannot set a `required` or `init` property. An **input blueprint** lets tests customize a small settable input, then the factory reads it to build the row. Production models stay as they are. Here `PullRequestRecord.PullRequestNumber` is `init`:
+A customizer runs after the factory, so it cannot set an init-only property. (A `required` member with a setter can still be customized.) An **input blueprint** lets tests customize a small settable input, then the factory reads it to build the row, so production models stay as they are. If `PullRequestRecord.PullRequestNumber` were `init`, as in zeeq-app's model, it would look like this:
 
 ```csharp
 public sealed class PullRequestInput
@@ -628,7 +628,7 @@ await TestBiome.Start(out _)
 - `Blueprint.FromInput` builds a root. `Blueprint.ChildFromInput` builds a child and passes the typed parent to the factory; `ctx.Ancestor<T>()` and per-parent fan-out work as for `ChildOf`.
 - Traits, customizers and `Derive`s act on the **input**. `out` variables and the new anchor hold the **output**.
 - An input is construction data: it is not recorded or saved, can't be a parent, and `All<PullRequestInput>()` is empty. A root input blueprint stays a root after `.Under(…)`.
-- `Derive` treats a property's default value (`null`, `0`, `false`) as unset, so an explicit default value on the input is refilled.
+- `Derive` treats a property's default value (`null`, `0`, `false`) as unset. A nullable value type (`int?`) keeps an explicit `0`/`false` but not an explicit `null`. Global defaults can also replace `null`, `0` or `false` on the output.
 
 See the [Input blueprints guide](https://zeeq-ai.github.io/zeeq-biome/guides/input-blueprints) for the order of work in a step and the aggregate form.
 
@@ -727,7 +727,7 @@ For each entity in an Add step:
 5. **Global defaults** (`options.Default`) run, fill-only.
 6. The entity is recorded, along with its parent link and step.
 
-For an input blueprint, steps 2 to 4 run on the **input**, then the factory builds the entity; steps 5 and 6 apply to that entity.
+For an input blueprint, every input first gets its traits and customizers (steps 2 and 3); then, per input, its `Derive`s (step 4) and the factory run in order; steps 5 and 6 apply to each output.
 
 `BuildAsync` then:
 

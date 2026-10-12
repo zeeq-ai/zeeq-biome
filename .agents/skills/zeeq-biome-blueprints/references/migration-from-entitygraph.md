@@ -126,7 +126,7 @@ await TestBiome.Start(_context, out var seed)
 
 Notes:
 - `now` here is the wall clock for brevity. Prefer `ctx.Now` in blueprints and a `(i, ctx) =>` customizer with `ctx.Ago(…)` in tests, or a shared `FakeTimeProvider`.
-- `Derive` treats `default` as unset, so a test can't pick `default(DateTimeOffset)` or `null` on the input on purpose.
+- `Derive` treats `default` as unset, so a test can't pick `default(DateTimeOffset)` or `null` on the input on purpose (a nullable value type keeps an explicit `0`/`false`, but not `null`).
 - If these properties are already settable, a plain `Blueprint.For` with `.Derive(m => m.ExpiresAtUtc, (m, _) => m.CreatedAtUtc.AddDays(7))` is simpler and tests set `i => i.InvitedEmail = …` directly. Don't add setters to production models only for the tests.
 
 ## Step 4: `UserAliasPrototype` becomes a child of `User`

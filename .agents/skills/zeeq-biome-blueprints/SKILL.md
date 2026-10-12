@@ -24,7 +24,7 @@ description: Use when creating or changing Zeeq.Biome test infrastructure. That 
 - Take the parent from the typed argument and grandparents from `ctx.Ancestor<T>()`. Never use `ctx.Last<T>()` or `All<T>()` to wire relationships.
 - **Leave derived properties unset** (`default`) so `Derive` can fill them. For `required` members, assign `null!` / `0` in the factory and let `Derive` fill them.
 - Entities and parents must be **reference types**. The seed can be anything.
-- A property that tests vary on the entity must be **settable**. Customizers can't assign `init` properties (CS8852). When the model must stay `init` or `required`, don't change production code: use an input blueprint (below) so tests customize the input and the factory builds the row.
+- A property that tests vary on the entity must be **settable**. Customizers can't assign `init` properties (CS8852). When the model must stay init-only (a `required` member with a setter can still be customized), don't change production code: use an input blueprint (below) so tests customize the input and the factory builds the row.
 - `ctx.Index` is the position in the current Add (per parent for children). It's for cosmetic values only, never for uniqueness or order.
 
 ## Derive, sequences, transients
@@ -42,11 +42,11 @@ description: Use when creating or changing Zeeq.Biome test infrastructure. That 
 - Declare variants **below their base in the same file**. Static fields initialize top to bottom, and across `partial` files the order is unspecified. The same goes for sequences used by a blueprint.
 - `Blueprint.FromInput<TSeed, TInput, T>(() => new(), (input, ctx) => …)` builds a **root** from a customizable input. `T` is any reference type, an ordinary entity or an `IBiomeAggregate` (one concept saved as several rows through `GetEntities()`).
 - `Blueprint.ChildFromInput<TSeed, TParent, TInput, T>(() => new(), (parent, input, ctx) => …)` builds a typed **child** from an input. Use `ctx.Ancestor<T>()` for ancestors and expect per-parent fan-out, as for `ChildOf`.
-- Customizers, traits and `Derive`s (callback or sequence) act on `TInput`. `out` and the new anchor hold the output `T`. The factory supplies every `required`/`init` value of the output.
+- Customizers, traits and `Derive`s (callback or sequence) act on `TInput`. `out` and the new anchor hold the output `T`. The factory initializes every `required`/`init` member of the output.
 - The input is construction data: it is not recorded or saved, can't be a parent, and `All<TInput>()` is empty. A root input blueprint stays a root after `.Under(…)`; it gets no parent.
-- Use inputs for immutable rows, for one choice that drives several values, or for aggregates. A plain settable entity is simpler as a normal blueprint.
-- `Derive` fills an input property only while it equals `default`, so an explicit `0`/`false`/`null` on an input is refilled. Use nullable input properties when a test must choose one of those.
-- **Availability:** ordinary outputs and `ChildFromInput` are not in `Zeeq.Biome` 1.0.1 (1.0.1 `FromInput` is aggregate-only). Don't tell users to pin 1.0.1 for them; they need a newer release or the repository source.
+- Use inputs for rows with init-only properties tests vary, for one choice that drives several values, or for aggregates. A plain settable entity is simpler as a normal blueprint.
+- `Derive` fills an input property only while it equals `default`. On an `int?`/`bool?` input an explicit `0`/`false` is kept, but an explicit `null` is still refilled if a `Derive` targets it. Output global `Default`s can also replace `null`/`0`/`false` on the output. There is no presence API.
+- **Availability:** ordinary outputs and `ChildFromInput` are not in `Zeeq.Biome` 1.0.1 (1.0.1 `FromInput` is aggregate-only). Don't tell users to pin 1.0.1 for them; they need a published release newer than 1.0.1.
 - Aggregate parts aren't tracked as parents, so child blueprints of an aggregate take the aggregate type as `TParent`.
 
 ## Scenario helpers
@@ -79,6 +79,6 @@ Biome has no hidden ancestor creation. Each helper's whole chain is visible in i
 - **Mixing `Action<T>` and `Action<T, ctx>` lambdas in one call.** C# can't. Sugar exposes `Action<T>` by default, so a one-off `ctx` customizer uses the core `Add` / `AddOne`.
 - **Adding a context overload to every sugar method, or overloads without `out`.** Four is the default. Add one named context overload only for a type whose tests repeatedly need the clock or parent (the `CodeReviews` tests' `AddCodeRepository` does). Callers still use `out _`.
 - **Ancestor creation inside a child sugar method.** Write a named scenario helper instead.
-- **An input blueprint for a plain settable entity.** Customize the entity directly; use an input when the row is immutable, one choice drives several values, or the output is a group of rows.
+- **An input blueprint for a plain settable entity.** Customize the entity directly; use an input when the row has init-only properties tests vary, one choice drives several values, or the output is a group of rows.
 - **Changing production `init` properties to `set` just so tests can customize them.** Use an input blueprint instead.
 - **Changing options after the first `Start`.** It throws. Build test-specific options with a factory method instead (see `tests/Zeeq.Biome.Tests/CustomSeed/Domain.cs`).
