@@ -1,7 +1,7 @@
 namespace Zeeq.Biome;
 
 /// <summary>A fluent view of a session and its current typed anchor. Adds build eagerly; BuildAsync saves once.</summary>
-/// <remarks>Entities, child parents, and aggregate inputs are reference types; seeds may have any shape. Factories, traits, and customizers are buffered across a step before sequence reservation. The fixed-arity default Add overload avoids ambiguity between the two params delegate forms. Context-aware AddOne requires its customizer; the plain optional-customizer overload supplies the default case. Construction failures fault the session; preflight argument errors do not.</remarks>
+/// <remarks>Entities, child parents, and inputs are reference types; seeds may have any shape. Factories, traits, and customizers are buffered across a step before sequence reservation. The fixed-arity default Add overload avoids ambiguity between the two params delegate forms. Context-aware AddOne requires its customizer; the plain optional-customizer overload supplies the default case. Construction failures fault the session; preflight argument errors do not.</remarks>
 public sealed class BiomeBuilder<TSeed, TAnchor>
 {
     internal BiomeBuilder(BiomeSession<TSeed> session, TAnchor anchor)
@@ -166,13 +166,13 @@ public sealed class BiomeBuilder<TSeed, TAnchor>
         return new(Session, created);
     }
 
-    /// <summary>Adds one default aggregate and re-anchors to its output.</summary>
+    /// <summary>Adds one default output and re-anchors to its output.</summary>
     public BiomeBuilder<TSeed, T[]> Add<TInput, T>(
         InputBlueprint<TSeed, TInput, T> bp,
         out T[] created
     )
         where TInput : class
-        where T : class, IBiomeAggregate => AddInputCore(bp, out created, 1, null);
+        where T : class => AddInputCore(bp, out created, 1, null);
 
     /// <summary>Adds the requested count and re-anchors to the output array.</summary>
     public BiomeBuilder<TSeed, T[]> Add<TInput, T>(
@@ -181,7 +181,7 @@ public sealed class BiomeBuilder<TSeed, TAnchor>
         int count
     )
         where TInput : class
-        where T : class, IBiomeAggregate => AddInputCore(bp, out created, count, null);
+        where T : class => AddInputCore(bp, out created, count, null);
 
     /// <summary>Adds one output per customizer; empty customizers create one default output.</summary>
     /// <remarks>Comma-separated delegates create separate entities. Combine delegates with + to stack traits on one entity.</remarks>
@@ -191,7 +191,7 @@ public sealed class BiomeBuilder<TSeed, TAnchor>
         params Action<TInput>[] customize
     )
         where TInput : class
-        where T : class, IBiomeAggregate
+        where T : class
     {
         Session.EnsureOpen();
         CustomizerValidation.Validate(customize);
@@ -211,7 +211,7 @@ public sealed class BiomeBuilder<TSeed, TAnchor>
         params Action<TInput, BiomeContext<TSeed>>[] customize
     )
         where TInput : class
-        where T : class, IBiomeAggregate
+        where T : class
     {
         Session.EnsureOpen();
         CustomizerValidation.Validate(customize);
@@ -230,7 +230,7 @@ public sealed class BiomeBuilder<TSeed, TAnchor>
         Action<TInput>? customize = null
     )
         where TInput : class
-        where T : class, IBiomeAggregate
+        where T : class
     {
         var result = AddInputCore(
             bp,
@@ -249,7 +249,7 @@ public sealed class BiomeBuilder<TSeed, TAnchor>
         Action<TInput, BiomeContext<TSeed>> customize
     )
         where TInput : class
-        where T : class, IBiomeAggregate
+        where T : class
     {
         Session.EnsureOpen();
         ArgumentNullException.ThrowIfNull(customize);
@@ -266,7 +266,7 @@ public sealed class BiomeBuilder<TSeed, TAnchor>
         Action<TInput, BiomeContext<TSeed>>? customize
     )
         where TInput : class
-        where T : class, IBiomeAggregate
+        where T : class
     {
         Session.EnsureOpen();
         ArgumentNullException.ThrowIfNull(bp);
@@ -303,7 +303,9 @@ public sealed class BiomeBuilder<TSeed, TAnchor>
                 }
                 var entity =
                     bp.Factory(input, ctx)
-                    ?? throw new InvalidOperationException("An aggregate factory returned null.");
+                    ?? throw new InvalidOperationException(
+                        "An input blueprint factory returned null."
+                    );
                 outputs.Add((entity, ctx));
             }
             return Session.Complete(outputs, [], bp.IsTransient);

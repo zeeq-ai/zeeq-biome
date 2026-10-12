@@ -48,11 +48,11 @@ public class BiomeContext<TSeed>
         (TAncestor)Session.FindAncestor(ParentEntity, typeof(TAncestor));
 
     /// <summary>Gets matching entities recorded so far in creation order.</summary>
-    /// <remarks>Factories, traits, and customizers see completed earlier steps while the current step is buffered for sequence reservation. Entity derives and defaults also see earlier outputs already recorded in the current step; aggregate input derives see earlier completed steps.</remarks>
+    /// <remarks>Factories, traits, and customizers see completed earlier steps while the current step is buffered for sequence reservation. Entity derives and defaults also see earlier outputs already recorded in the current step; input derives and input factories see earlier completed steps.</remarks>
     public IReadOnlyList<T> All<T>() => Session.All<T>();
 
     /// <summary>Gets the last recorded matching entity or throws.</summary>
-    /// <remarks>Like All, factories, traits, and customizers see only earlier completed steps. Entity derives/defaults can see earlier recorded outputs in their current step; input derives and aggregate factories see earlier completed steps. The entity currently being built is not yet recorded. Last throws if no matching output is visible.</remarks>
+    /// <remarks>Like All, factories, traits, and customizers see only earlier completed steps. Entity derives/defaults can see earlier recorded outputs in their current step; input derives and input factories see earlier completed steps. The entity currently being built is not yet recorded. Last throws if no matching output is visible.</remarks>
     public T Last<T>() => Session.Last<T>();
 }
 

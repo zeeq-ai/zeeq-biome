@@ -2,11 +2,11 @@ using System.Linq.Expressions;
 
 namespace Zeeq.Biome;
 
-/// <summary>An immutable aggregate input factory with ordered traits and fill-only derivations.</summary>
-/// <remarks>Inputs and aggregate outputs are reference types. Customizers and derives target the input, not the aggregate parts. This is a root addition: Under does not implicitly populate its input or supply a parent.</remarks>
+/// <summary>An immutable input factory with ordered traits and fill-only derivations.</summary>
+/// <remarks>Inputs and outputs are reference types. Customizers and derives target the input, not the output. This is a root addition: Under does not implicitly populate its input or supply a parent.</remarks>
 public sealed class InputBlueprint<TSeed, TInput, T>
     where TInput : class
-    where T : class, IBiomeAggregate
+    where T : class
 {
     internal InputBlueprint(
         Func<TInput> newInput,
