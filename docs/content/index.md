@@ -15,7 +15,7 @@ orientation: horizontal
 Test setup that says [only what the test is about]{.text-primary}.
 
 #description
-**Zeeq Biome** builds the slice of your entity graph one test needs: valid defaults, typed parents and children, sequences for numbers and ordering, a controlled clock, and pluggable persistence. A `.NET 10` / `C# 14` library. Defaults never overwrite a value the test set.
+A test often needs several related rows just to check one behavior. **Zeeq Biome** keeps the routine setup in reusable blueprints, so your test can show what matters. Build the graph, choose the values you need, and let defaults fill the rest. For `.NET 10` / `C# 14`.
 
 #links
   :::u-button
@@ -63,7 +63,7 @@ Test setup that says [only what the test is about]{.text-primary}.
 
 ::u-page-section{class="dark:bg-neutral-950"}
 #title
-Say what you are testing. Nothing else.
+Keep the setup focused on the behavior.
 
 #features
   :::u-page-feature
@@ -74,7 +74,7 @@ Say what you are testing. Nothing else.
   Only the property under test
 
   #description
-  Blueprints supply valid, uninteresting defaults. A call site sets just the property the test is about, and nothing overwrites it.
+  Repeating defaults makes the important value harder to spot. Blueprints handle the routine properties, while the test chooses the values it depends on.
   :::
 
   :::u-page-feature
@@ -85,7 +85,7 @@ Say what you are testing. Nothing else.
   Typed parents and children
 
   #description
-  A child blueprint takes its parent as a typed argument. Every Add re-anchors to its output, so a chain reads top to bottom.
+  Related rows should agree about their parent. Child blueprints receive that parent directly, so the chain shows how each entity belongs to the one above it.
   :::
 
   :::u-page-feature
@@ -96,7 +96,7 @@ Say what you are testing. Nothing else.
   Sequences, not index + 1
 
   #description
-  Declare a numbering or ranking sequence once. Scope it per session, per parent, or per ancestor, and explicit values are skipped.
+  A counter based on an array index restarts at the next Add. Sequences keep counting within the scope you choose and skip values the test supplies.
   :::
 
   :::u-page-feature
@@ -107,7 +107,7 @@ Say what you are testing. Nothing else.
   One clock per test
 
   #description
-  Frozen by default, or share a `FakeTimeProvider` with the code under test. Values round to 1 µs, matching Postgres `timestamptz`.
+  Small timestamp differences can break an otherwise correct test. Use a frozen clock or share a `FakeTimeProvider`, with 1 µs precision to match Postgres.
   :::
 
   :::u-page-feature
@@ -118,7 +118,7 @@ Say what you are testing. Nothing else.
   Pluggable persistence
 
   #description
-  Save through EF Core with one `SaveChangesAsync`, skip the database for unit tests, or implement a one-method `IBiomeStore`.
+  The same blueprints can serve unit and database tests. Build entities in memory, save once through EF Core, or supply your own `IBiomeStore`.
   :::
 
   :::u-page-feature
@@ -129,7 +129,7 @@ Say what you are testing. Nothing else.
   Agent skills included
 
   #description
-  Two skills teach coding agents to write test chains and author blueprints the way this library intends.
+  Agents need guidance on the same choices you make in setup. Two included skills explain how to write test chains and maintain the blueprints behind them.
   :::
 ::
 
@@ -144,8 +144,8 @@ Say what you are testing. Nothing else.
       to: '/examples'
       variant: subtle
       icon: i-lucide-library
-  title: Make your next test setup shorter than the assertion.
-  description: Install the NuGet package, write one blueprint, and see the difference in your first test.
+  title: Start with one test.
+  description: Choose an entity you build often, give it a blueprint, and use it in a test. The quick start walks through each choice.
   class: dark:bg-neutral-950
   ---
 
