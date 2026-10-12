@@ -1,7 +1,15 @@
 ﻿{
   Diagnostics: [
     {
-      Location: : (9,0)-(10,28),
+      Location: /*
+
+[BiomeGraft]
+^^^^^^^^^^^^
+internal class NotStatic { }
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*/
+ : (9,0)-(10,28),
       Message: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
       Severity: Error,
       Descriptor: {
@@ -16,7 +24,15 @@
       }
     },
     {
-      Location: : (12,0)-(13,43),
+      Location: /*
+
+[BiomeGraft]
+^^^^^^^^^^^^
+internal static class GenericCatalog<T> { }
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*/
+ : (12,0)-(13,43),
       Message: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
       Severity: Error,
       Descriptor: {
@@ -31,7 +47,15 @@
       }
     },
     {
-      Location: : (17,4)-(18,36),
+      Location: /*
+{
+    [BiomeGraft]
+    ^^^^^^^^^^^^
+    internal static class Nested { }
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+}
+*/
+ : (17,4)-(18,36),
       Message: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
       Severity: Error,
       Descriptor: {
@@ -46,7 +70,13 @@
       }
     },
     {
-      Location: : (31,51)-(31,55),
+      Location: /*
+    [Graft(Plural = "News")]
+    internal static readonly Blueprint<Seed, News> News = null!;
+                                                   ^^^^
+}
+*/
+ : (31,51)-(31,55),
       Message: Blueprint member 'News' uses 'News' for both singular and plural; set [Graft(Plural = "...")],
       Severity: Warning,
       WarningLevel: 1,
@@ -62,7 +92,13 @@
       }
     },
     {
-      Location: : (25,53)-(25,63),
+      Location: /*
+    [Graft("School")]
+    internal static readonly Blueprint<Seed, School> RootSchool = null!;
+                                                     ^^^^^^^^^^
+
+*/
+ : (25,53)-(25,63),
       Message: Blueprint members 'RootSchool' and 'ChildSchool' produce overlapping graft overloads on the same builder: AddSchool(out global::GraftDiagnostics.School, global::System.Action<global::GraftDiagnostics.School>?); AddSchools(out global::GraftDiagnostics.School[], int); AddSchools(out global::GraftDiagnostics.School[], params global::System.Action<global::GraftDiagnostics.School>[]),
       Severity: Warning,
       WarningLevel: 1,

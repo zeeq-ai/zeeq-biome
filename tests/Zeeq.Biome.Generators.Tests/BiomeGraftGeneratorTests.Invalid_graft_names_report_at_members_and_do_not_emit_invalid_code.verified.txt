@@ -1,7 +1,13 @@
 ﻿{
   Diagnostics: [
     {
-      Location: : (8,52)-(8,67),
+      Location: /*
+    [Graft("Bad Name")]
+    internal static readonly Blueprint<Seed, Entry> InvalidSingular = null!;
+                                                    ^^^^^^^^^^^^^^^
+
+*/
+ : (8,52)-(8,67),
       Message: Blueprint member 'InvalidSingular' has an invalid singular graft name 'Bad Name'; use a valid C# identifier,
       Severity: Error,
       Descriptor: {
@@ -16,8 +22,56 @@
       }
     },
     {
-      Location: : (11,52)-(11,65),
+      Location: /*
+    [Graft(Plural = "Bad Name")]
+    internal static readonly Blueprint<Seed, Entry> InvalidPlural = null!;
+                                                    ^^^^^^^^^^^^^
+
+*/
+ : (11,52)-(11,65),
       Message: Blueprint member 'InvalidPlural' has an invalid plural graft name 'Bad Name'; use a valid C# identifier,
+      Severity: Error,
+      Descriptor: {
+        Id: BIOME004,
+        Title: Invalid Biome graft name,
+        Description: Use a valid C# identifier for the singular or plural graft name.,
+        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
+        MessageFormat: Blueprint member '{0}' has an invalid {1} graft name '{2}'; use a valid C# identifier,
+        Category: Biome graft,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: /*
+    [Graft("123")]
+    internal static readonly Blueprint<Seed, Entry> InvalidNumericSingular = null!;
+                                                    ^^^^^^^^^^^^^^^^^^^^^^
+
+*/
+ : (14,52)-(14,74),
+      Message: Blueprint member 'InvalidNumericSingular' has an invalid singular graft name '123'; use a valid C# identifier,
+      Severity: Error,
+      Descriptor: {
+        Id: BIOME004,
+        Title: Invalid Biome graft name,
+        Description: Use a valid C# identifier for the singular or plural graft name.,
+        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
+        MessageFormat: Blueprint member '{0}' has an invalid {1} graft name '{2}'; use a valid C# identifier,
+        Category: Biome graft,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: /*
+    [Graft(Plural = "456")]
+    internal static readonly Blueprint<Seed, Entry> InvalidNumericPlural = null!;
+                                                    ^^^^^^^^^^^^^^^^^^^^
+
+*/
+ : (17,52)-(17,72),
+      Message: Blueprint member 'InvalidNumericPlural' has an invalid plural graft name '456'; use a valid C# identifier,
       Severity: Error,
       Descriptor: {
         Id: BIOME004,

@@ -82,11 +82,12 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                     new GeneratedSourceModel(CreateHintName(catalog), RenderCatalog(catalog))
             )
             .WithTrackingName("BiomeGraftSource");
+        var catalogsWithCompilation = catalogs.Combine(context.CompilationProvider);
 
         context.RegisterSourceOutput(
-            catalogs,
-            static (productionContext, catalog) =>
-                ReportCatalogDiagnostics(productionContext, catalog)
+            catalogsWithCompilation,
+            static (productionContext, pair) =>
+                ReportCatalogDiagnostics(productionContext, pair.Left, pair.Right)
         );
         context.RegisterSourceOutput(
             generatedSources,
@@ -174,7 +175,8 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                         isValidPlural,
                         pluralOverride is not null,
                         SourceLocationModel.From(
-                            GetMemberLocation(member, context.TargetNode.GetLocation())
+                            GetMemberLocation(member, context.TargetNode.GetLocation()),
+                            context.SemanticModel.Compilation
                         )
                     )
                 );
@@ -191,25 +193,29 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             namespaceName,
             GetAccessibility(catalog.DeclaredAccessibility),
             isSupported,
-            SourceLocationModel.From(context.TargetNode.GetLocation()),
+            SourceLocationModel.From(
+                context.TargetNode.GetLocation(),
+                context.SemanticModel.Compilation
+            ),
             members.ToImmutable()
         );
     }
 
     private static void ReportCatalogDiagnostics(
         SourceProductionContext context,
-        CatalogModel catalog
+        CatalogModel catalog,
+        Compilation compilation
     )
     {
         if (!catalog.IsSupported)
         {
             context.ReportDiagnostic(
-                Diagnostic.Create(InvalidCatalog, catalog.Location.ToLocation())
+                Diagnostic.Create(InvalidCatalog, catalog.Location.ToLocation(compilation))
             );
             return;
         }
 
-        ReportMemberDiagnostics(context, catalog);
+        ReportMemberDiagnostics(context, catalog, compilation);
     }
 
     private static string CreateHintName(CatalogModel catalog) =>
@@ -219,7 +225,8 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
 
     private static void ReportMemberDiagnostics(
         SourceProductionContext context,
-        CatalogModel catalog
+        CatalogModel catalog,
+        Compilation compilation
     )
     {
         foreach (var member in catalog.Members)
@@ -229,7 +236,7 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         InvalidGraftName,
-                        member.Location.ToLocation(),
+                        member.Location.ToLocation(compilation),
                         member.SourceName,
                         "singular",
                         member.Name
@@ -242,7 +249,7 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         InvalidGraftName,
-                        member.Location.ToLocation(),
+                        member.Location.ToLocation(compilation),
                         member.SourceName,
                         "plural",
                         member.Plural
@@ -258,7 +265,7 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         SameSingularAndPlural,
-                        member.Location.ToLocation(),
+                        member.Location.ToLocation(compilation),
                         member.SourceName,
                         member.Name
                     )
@@ -297,8 +304,8 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                     context.ReportDiagnostic(
                         Diagnostic.Create(
                             DuplicateMethod,
-                            left.Location.ToLocation(),
-                            new[] { right.Location.ToLocation() },
+                            left.Location.ToLocation(compilation),
+                            new[] { right.Location.ToLocation(compilation) },
                             properties: null,
                             left.SourceName,
                             right.SourceName,
@@ -608,12 +615,21 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                 or Accessibility.ProtectedOrInternal;
 
     private static bool IsValidGraftName(string name) =>
-        !string.IsNullOrWhiteSpace(name) && SyntaxFacts.IsValidIdentifier($"Add{name}");
+        !string.IsNullOrWhiteSpace(name)
+        && SyntaxFacts.IsValidIdentifier($"Add{name}")
+        && IsValidOutputParameterName(name);
 
     private static bool IsValidGraftPlural(string plural) =>
         !string.IsNullOrWhiteSpace(plural)
         && SyntaxFacts.IsValidIdentifier($"Add{plural}")
-        && SyntaxFacts.IsValidIdentifier(EscapeIdentifier(CamelCase(plural)));
+        && IsValidOutputParameterName(plural);
+
+    private static bool IsValidOutputParameterName(string name)
+    {
+        var parameterName = CamelCase(name);
+        return SyntaxFacts.IsValidIdentifier(parameterName)
+            || SyntaxFacts.GetKeywordKind(parameterName) != SyntaxKind.None;
+    }
 
     private static Location GetMemberLocation(ISymbol member, Location fallback) =>
         member.Locations.FirstOrDefault(location => location.IsInSource) ?? fallback;
@@ -849,7 +865,8 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         int startLine,
         int startCharacter,
         int endLine,
-        int endCharacter
+        int endCharacter,
+        int syntaxTreeIndex
     ) : IEquatable<SourceLocationModel>
     {
         public string FilePath { get; } = filePath;
@@ -859,10 +876,27 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         public int StartCharacter { get; } = startCharacter;
         public int EndLine { get; } = endLine;
         public int EndCharacter { get; } = endCharacter;
+        public int SyntaxTreeIndex { get; } = syntaxTreeIndex;
 
-        public static SourceLocationModel From(Location location)
+        public static SourceLocationModel From(Location location, Compilation compilation)
         {
             var lineSpan = location.GetLineSpan();
+            var syntaxTreeIndex = -1;
+            if (location.SourceTree is { } sourceTree)
+            {
+                var index = 0;
+                foreach (var syntaxTree in compilation.SyntaxTrees)
+                {
+                    if (ReferenceEquals(syntaxTree, sourceTree))
+                    {
+                        syntaxTreeIndex = index;
+                        break;
+                    }
+
+                    index++;
+                }
+            }
+
             return new SourceLocationModel(
                 lineSpan.Path,
                 location.SourceSpan.Start,
@@ -870,12 +904,28 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                 lineSpan.Span.Start.Line,
                 lineSpan.Span.Start.Character,
                 lineSpan.Span.End.Line,
-                lineSpan.Span.End.Character
+                lineSpan.Span.End.Character,
+                syntaxTreeIndex
             );
         }
 
-        public Location ToLocation() =>
-            Location.Create(
+        public Location ToLocation(Compilation compilation)
+        {
+            if (SyntaxTreeIndex >= 0)
+            {
+                var index = 0;
+                foreach (var syntaxTree in compilation.SyntaxTrees)
+                {
+                    if (index == SyntaxTreeIndex)
+                    {
+                        return Location.Create(syntaxTree, new TextSpan(Start, Length));
+                    }
+
+                    index++;
+                }
+            }
+
+            return Location.Create(
                 FilePath,
                 new TextSpan(Start, Length),
                 new LinePositionSpan(
@@ -883,6 +933,7 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                     new LinePosition(EndLine, EndCharacter)
                 )
             );
+        }
 
         public bool Equals(SourceLocationModel? other) =>
             other is not null
@@ -892,7 +943,8 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             && StartLine == other.StartLine
             && StartCharacter == other.StartCharacter
             && EndLine == other.EndLine
-            && EndCharacter == other.EndCharacter;
+            && EndCharacter == other.EndCharacter
+            && SyntaxTreeIndex == other.SyntaxTreeIndex;
 
         public override bool Equals(object? obj) =>
             obj is SourceLocationModel other && Equals(other);
@@ -907,7 +959,8 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                 hash = (hash * 397) ^ StartLine;
                 hash = (hash * 397) ^ StartCharacter;
                 hash = (hash * 397) ^ EndLine;
-                return (hash * 397) ^ EndCharacter;
+                hash = (hash * 397) ^ EndCharacter;
+                return (hash * 397) ^ SyntaxTreeIndex;
             }
         }
     }

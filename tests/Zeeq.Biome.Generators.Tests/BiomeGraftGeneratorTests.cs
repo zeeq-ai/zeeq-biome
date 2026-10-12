@@ -284,6 +284,12 @@ public sealed class BiomeGraftGeneratorTests
                 [Graft(Plural = "Bad Name")]
                 internal static readonly Blueprint<Seed, Entry> InvalidPlural = null!;
 
+                [Graft("123")]
+                internal static readonly Blueprint<Seed, Entry> InvalidNumericSingular = null!;
+
+                [Graft(Plural = "456")]
+                internal static readonly Blueprint<Seed, Entry> InvalidNumericPlural = null!;
+
                 internal static readonly Blueprint<Seed, Entry> Valid = null!;
             }
             """;
@@ -294,7 +300,7 @@ public sealed class BiomeGraftGeneratorTests
         var diagnostics = driver.GetRunResult().Diagnostics;
         await Assert
             .That(diagnostics.Count(diagnostic => diagnostic.Id == "BIOME004"))
-            .IsEqualTo(2);
+            .IsEqualTo(4);
         await Assert
             .That(
                 diagnostics
@@ -307,7 +313,7 @@ public sealed class BiomeGraftGeneratorTests
             .Select(diagnostic => diagnostic.Location.GetLineSpan().Span.Start.Line)
             .OrderBy(line => line)
             .ToArray();
-        await Assert.That(reportedMemberLines.SequenceEqual(new[] { 8, 11 })).IsTrue();
+        await Assert.That(reportedMemberLines.SequenceEqual(new[] { 8, 11, 14, 17 })).IsTrue();
         await Assert
             .That(
                 updated
@@ -324,8 +330,60 @@ public sealed class BiomeGraftGeneratorTests
             .That(generated.Contains("InvalidSingular", StringComparison.Ordinal))
             .IsFalse();
         await Assert.That(generated.Contains("InvalidPlural", StringComparison.Ordinal)).IsFalse();
+        await Assert
+            .That(generated.Contains("InvalidNumericSingular", StringComparison.Ordinal))
+            .IsFalse();
+        await Assert
+            .That(generated.Contains("InvalidNumericPlural", StringComparison.Ordinal))
+            .IsFalse();
         await Assert.That(generated.Contains("AddValid", StringComparison.Ordinal)).IsTrue();
         await Verify(driver);
+    }
+
+    [Test]
+    public async Task Graft_diagnostics_are_anchored_to_their_source_tree()
+    {
+        const string source = """
+            using Zeeq.Biome;
+            namespace GraftPragma;
+            internal sealed class Seed { }
+            internal sealed class NewsEntry { }
+            internal sealed class FishEntry { }
+            [BiomeGraft]
+            internal static class Blueprints
+            {
+                #pragma warning disable BIOME002
+                [Graft(Plural = "News")]
+                internal static readonly Blueprint<Seed, NewsEntry> News = null!;
+                #pragma warning restore BIOME002
+
+                [Graft(Plural = "Fish")]
+                internal static readonly Blueprint<Seed, FishEntry> Fish = null!;
+            }
+            """;
+
+        var compilation = CreateCompilation(source, treatWarningsAsErrors: true);
+        var sourceTree = compilation.SyntaxTrees.Last();
+        var driver = CreateDriver().RunGenerators(compilation);
+        var diagnostics = driver
+            .GetRunResult()
+            .Diagnostics.Where(diagnostic => diagnostic.Id == "BIOME002")
+            .ToArray();
+
+        await Assert.That(diagnostics.Length).IsEqualTo(2);
+        await Assert
+            .That(
+                diagnostics.All(diagnostic =>
+                    ReferenceEquals(diagnostic.Location.SourceTree, sourceTree)
+                )
+            )
+            .IsTrue();
+        var lineNumbers = diagnostics
+            .Select(diagnostic => diagnostic.Location.GetLineSpan().Span.Start.Line)
+            .OrderBy(line => line)
+            .ToArray();
+        await Assert.That(lineNumbers[0]).IsEqualTo(10);
+        await Assert.That(lineNumbers[1]).IsEqualTo(14);
     }
 
     [Test]
