@@ -17,6 +17,12 @@
   - Use Roslyn analyzers where it can help users reduce mistakes
 - Always think about future travelers who need to quickly understand the decisions
 - Comments are a secret weapon: free long-term memory to capture key decisions, reasoning, rationale
+- Be a good citizen:
+  - Don't ignore warnings, errors
+  - `csharpier` and format files you touched
+  - Verify tests
+  - Update docs
+  - Comment length corresponding to the complexity and importance of the decision being documented
 
 ## How to Work
 
@@ -35,3 +41,15 @@
   - Check active work and ownership
   - Coordinate when necessary
   - If your work can be parallelized and delegated, do so and coordinate it to release
+
+## Repo Rules
+
+- Use conventional commit:
+  - `fix(scope): Sentence case`: refactor, bug fixes, minor patches
+  - `feat(scope): Sentence case`: net new features, new capabilities
+  - `chore(scope): Sentence case`: ops, docs, package updates, CI, etc.
+- PR format:
+  - Title: `type(scope): Sentence case`
+  - (H2) Summary: Provide a clear and concise explanation of the changes made, referencing any relevant issues or tickets.
+  - (H2) Key changes: Which parts of the code were modified and why.
+  - (H2) Test strategy: (If applicable) describe how the changes were tested, including any relevant test cases, scenarios, or frameworks used.

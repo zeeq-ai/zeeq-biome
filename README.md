@@ -12,6 +12,8 @@ await TestBiome.Start(_db, out var seed)
     .BuildAsync();
 ```
 
+> 💡 Steal this idea; point your agent at <https://zeeq-ai.github.io/zeeq-biome/llms.txt> and ask it to build it for TypeScript, Rust, Go, etc.
+
 ## Install
 
 ```sh
