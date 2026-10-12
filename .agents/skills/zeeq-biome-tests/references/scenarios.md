@@ -127,7 +127,9 @@ await TestBiome.Start(out _)
 
 Values are rounded to 1 µs (Postgres precision), so a value read back from Postgres equals the value in memory. Don't compare against `DateTimeOffset.UtcNow`.
 
-## 7. Aggregates (one input, several rows)
+## 7. Inputs and aggregates (customize an input, build the row)
+
+For a blueprint made with `FromInput` / `ChildFromInput`, the customizer sets properties of the **input**, not of the row:
 
 ```csharp
 await TestBiome.Start(_db, out _)
@@ -138,7 +140,18 @@ await TestBiome.Start(_db, out _)
 // orgs[0].Organization, orgs[0].RootTeam, orgs[0].Membership are all saved
 ```
 
-Customizers act on the input (`OrganizationInput`), not on the rows.
+A child built from an input fans out per parent like any child, and `out` holds the row (not the input):
+
+```csharp
+await TestBiome.Start(out _)
+    .AddCodeRepository(out var repo)
+    .Add(Blueprints.PullRequestFromInput, out var prs, 2)               // numbers 1, 2
+    .Under(repo)
+    .AddOne(Blueprints.PullRequestFromInput, out var pr10, i => i.Number = 10)
+    .BuildAsync();
+```
+
+Inputs aren't rows: `Under`, `Transient()`, `All<T>()` and `Last<T>()` work on the outputs, and `All<Input>()` is empty. Ordinary-entity inputs and `ChildFromInput` need a Zeeq.Biome release newer than 1.0.1.
 
 ## 8. A pure unit test (no database)
 

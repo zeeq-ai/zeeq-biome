@@ -181,10 +181,50 @@ public static class CodeReviewSugar
 - The core API underneath:
   - `Add(bp, out T[])`, `Add(bp, out T[], int)`, `Add(bp, out T[], params Action<T>[])`, and `Add(bp, out T[], params Action<T, ctx>[])`.
   - `AddOne(bp, out T[, Action<T>?])` and `AddOne(bp, out T, Action<T, ctx>)`. The ctx form requires a customizer.
-  - Input blueprints have the same shapes, with customizers over `TInput`.
+  - Input blueprints (`InputBlueprint`, `ChildInputBlueprint`) have the same shapes, with customizers over `TInput` (`Action<TInput>`, or `Action<TInput, BiomeContext<TSeed>>` / `Action<TInput, ChildContext<TSeed, TParent>>`). `out` and the new anchor hold the output.
 - A singular child `AddOne` throws unless the anchor has exactly one parent.
 
-## Aggregates
+## Input blueprints
+
+Use an input when the output has init-only properties (including positional record properties) that tests vary, when one choice drives several values, or when the output is a group of rows. The test customizes a small settable **input**; the factory reads it and builds the row. Production models don't change.
+
+> Ordinary entity outputs and `ChildFromInput` are not in `Zeeq.Biome` 1.0.1; 1.0.1 `FromInput` requires an `IBiomeAggregate` output.
+
+```csharp
+public sealed class EnrollmentInput          // construction data: settable, nothing required
+{
+    public int Seat { get; set; }
+    public bool Waitlisted { get; set; }
+    public DateTimeOffset EnrolledAtUtc { get; set; }
+}
+
+public static readonly Sequence<int> EnrollmentSeats = Sequence.Of(1, n => n + 1).PerParent();
+
+public static readonly ChildInputBlueprint<SchoolSeed, SchoolClass, EnrollmentInput, Enrollment> Enrollment =
+    Blueprint
+        .ChildFromInput<SchoolSeed, SchoolClass, EnrollmentInput, Enrollment>(
+            () => new(),
+            (schoolClass, input, ctx) => new()           // Enrollment has required init members
+            {
+                Id = ctx.NewId("enr"),
+                SchoolId = ctx.Ancestor<School>().Id,
+                ClassId = schoolClass.Id,
+                Seat = input.Seat,
+                Status = input.Waitlisted ? "waitlisted" : "active",
+                EnrolledAtUtc = input.EnrolledAtUtc,
+            })
+        .Derive(i => i.Seat, EnrollmentSeats)
+        .Derive(i => i.EnrolledAtUtc, (_, ctx) => ctx.Now);
+```
+
+- Root: `Blueprint.FromInput<TSeed, TInput, T>(() => new(), (input, ctx) => …)`. Child: `Blueprint.ChildFromInput<TSeed, TParent, TInput, T>(() => new(), (parent, input, ctx) => …)`. `TParent`, `TInput` and `T` are reference types.
+- Order in one Add step: every input is created and gets its traits and customizers; `Derive(prop, sequence)` reserves explicit values across the whole step; then, per input in order, its `Derive`s run and the factory builds the output; global defaults then apply to the output, which is recorded.
+- Input factories, derives, traits and customizers see only earlier completed steps through `ctx.All<T>()` / `ctx.Last<T>()`. Wire relationships through the typed parent and `ctx.Ancestor<T>()`.
+- An input isn't recorded or saved and can't be a parent. A root input blueprint doesn't get a parent from `.Under(…)`; use `ChildFromInput` for that.
+- `Derive` on an input fills only an unset property (`default`). On an `int?`/`bool?` input an explicit `0` or `false` is kept, but an explicit `null` is still refilled if a `Derive` targets that property. Global `Default`s can also replace `null`, `0` or `false` on the output. Biome has no presence API.
+- `.With`, `.Derive` and `.AsTransient()` work on both input forms.
+
+### Aggregates
 
 ```csharp
 public sealed record OrganizationGraph(Organization Organization, Team RootTeam, OrganizationMembership Membership)
@@ -195,9 +235,9 @@ public sealed record OrganizationGraph(Organization Organization, Team RootTeam,
 ```
 
 - Build the blueprint with `Blueprint.FromInput<ZeeqSeed, OrganizationInput, OrganizationGraph>(() => new(), (input, ctx) => …)`. The input is a small settable class, effectively the old prototype.
-- `Derive` on an input blueprint targets **input** properties, before the build function runs.
 - `GetEntities()` may return nested aggregates; they are expanded recursively, and duplicate references are saved once.
 - `.AsTransient()` on an aggregate excludes all of its parts from the save.
+- Parts aren't tracked as parents. A child of an aggregate takes the aggregate type as `TParent`. Global defaults reach the wrapper, not its parts.
 
 ## Options
 

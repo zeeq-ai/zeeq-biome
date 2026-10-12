@@ -185,7 +185,7 @@ await TestBiome.Start(out _)
 
 "Unset" means `default(TProp)`: `null`, `0`, `false`, `default(DateTimeOffset)`. An empty string `""` counts as set. In the factory, leave derived properties unset.
 
-> **Note:** customizers assign properties, so any property a test varies needs a setter. With `{ get; init; }`, the compiler rejects assignment from a customizer (CS8852). `Derive` can still fill `init` properties.
+> **Note:** customizers assign properties, so any property a test varies on the entity needs a setter. With `{ get; init; }`, the compiler rejects assignment from a customizer (CS8852). `Derive` can still fill `init` properties. For rows that must stay immutable, customize an input instead; see [Input blueprints](#input-blueprints-customize-an-input-then-build-the-row).
 
 ### 4. Children: chain, branch, fan out
 
@@ -530,7 +530,7 @@ await TestBiome.Start(_db, out _, time)
 // act: var sweeper = new StaleReviewSweeper(_db, time); time.Advance(…); await sweeper.RunAsync();
 ```
 
-The four sugar methods take `Action<T>`. For a context-aware customizer, call `AddOne` / `Add` with the blueprint directly, as above.
+The four sugar methods take `Action<T>`. For a one-off context-aware customizer, call `AddOne` / `Add` with the blueprint directly, as above. If a type's tests keep needing the clock, add one named context overload for it, as the library's `CodeReviews` tests do for the repository (`Action<CodeRepository, BiomeContext<CodeReviewSeed>>`).
 
 ### Unit tests with no database
 
@@ -585,7 +585,54 @@ private static readonly BiomeOptions<ZeeqSeed> Options = new BiomeOptions<ZeeqSe
 
 Use hooks sparingly. Rows a test can't see make it harder to read. Rows added in `BeforeSave` skip the per-entity pipeline: no traits, `Derive`s, or global defaults are applied to them.
 
-### Aggregates: one input, several rows
+### Input blueprints: customize an input, then build the row
+
+> **Availability:** ordinary entity outputs from `FromInput` and `ChildFromInput` are **not in `Zeeq.Biome` 1.0.1**. In 1.0.1, `FromInput` accepts only `IBiomeAggregate` outputs. Use the rest of this section once a release newer than 1.0.1 is published.
+
+A customizer runs after the factory, so it cannot set an init-only property. (A `required` member with a setter can still be customized.) An **input blueprint** lets tests customize a small settable input, then the factory reads it to build the row, so production models stay as they are. If `PullRequestRecord.PullRequestNumber` were `init`, as in zeeq-app's model, it would look like this:
+
+```csharp
+public sealed class PullRequestInput
+{
+    public int Number { get; set; }
+    public string? Title { get; set; }
+}
+
+public static readonly ChildInputBlueprint<ZeeqSeed, CodeRepository, PullRequestInput, PullRequestRecord> PullRequestFromInput =
+    Blueprint
+        .ChildFromInput<ZeeqSeed, CodeRepository, PullRequestInput, PullRequestRecord>(
+            () => new(),
+            (repo, input, ctx) => new()
+            {
+                Id = ctx.NewId("pr"),
+                OrganizationId = repo.OrganizationId,
+                RepositoryId = repo.Id,
+                PullRequestNumber = input.Number,         // init-only: set during construction
+                Title = input.Title!,
+                State = PullRequestState.Open,
+                CreatedAtUtc = ctx.Now,
+            })
+        .Derive(i => i.Number, PullRequestNumbers)        // fills the input; explicit numbers are reserved
+        .Derive(i => i.Title, (i, _) => $"Pull request {i.Number}");
+```
+
+```csharp
+await TestBiome.Start(out _)
+    .AddCodeRepository(out var repo)
+    .Add(Blueprints.PullRequestFromInput, out var prs, 2)                          // numbers 1, 2
+    .Under(repo)
+    .AddOne(Blueprints.PullRequestFromInput, out var pr10, i => i.Number = 10)    // explicit number
+    .BuildAsync();
+```
+
+- `Blueprint.FromInput` builds a root. `Blueprint.ChildFromInput` builds a child and passes the typed parent to the factory; `ctx.Ancestor<T>()` and per-parent fan-out work as for `ChildOf`.
+- Traits, customizers and `Derive`s act on the **input**. `out` variables and the new anchor hold the **output**.
+- An input is construction data: it is not recorded or saved, can't be a parent, and `All<PullRequestInput>()` is empty. A root input blueprint stays a root after `.Under(…)`.
+- `Derive` treats a property's default value (`null`, `0`, `false`) as unset. A nullable value type (`int?`) keeps an explicit `0`/`false` but not an explicit `null`. Global defaults can also replace `null`, `0` or `false` on the output.
+
+See the [Input blueprints guide](https://zeeq-ai.github.io/zeeq-biome/guides/input-blueprints) for the order of work in a step and the aggregate form.
+
+#### Aggregates: one input, several rows
 
 When one concept is several rows, as with zeeq-app's `OrganizationGraph`, customize a small **input** object and build the rows from it. The aggregate implements `IBiomeAggregate`, and its parts are saved in place of the aggregate itself.
 
@@ -644,7 +691,7 @@ await TestBiome.Start(_db, out _)
     .BuildAsync();   // saves org, root team, membership for each, in GetEntities() order
 ```
 
-Use input blueprints for aggregates only. A single entity should be customized directly. Global defaults apply to the aggregate object itself, not to its parts. Parts aren't tracked as parents, so to hang children off an aggregate, make the aggregate type (`OrganizationGraph`) the child blueprint's parent.
+Global defaults apply to the aggregate object itself, not to its parts. Parts aren't tracked as parents, so to hang children off an aggregate, make the aggregate type (`OrganizationGraph`) the child blueprint's parent.
 
 ## Cheat sheet
 
@@ -653,7 +700,8 @@ Use input blueprints for aggregates only. A single entity should be customized d
 | Start a test | `TestBiome.Start(out var seed)` / `TestBiome.Start(_db, out var seed, time)` |
 | Root blueprint | `Blueprint.For<TSeed, T>(ctx => new() { … })` |
 | Child blueprint | `Blueprint.ChildOf<TSeed, TParent, T>((parent, ctx) => new() { … })` |
-| Aggregate blueprint | `Blueprint.FromInput<TSeed, TInput, T>(() => new(), (input, ctx) => …)` |
+| Root built from an input | `Blueprint.FromInput<TSeed, TInput, T>(() => new(), (input, ctx) => …)` |
+| Child built from an input | `Blueprint.ChildFromInput<TSeed, TParent, TInput, T>(() => new(), (parent, input, ctx) => …)` |
 | Variant | `bp.With(trait)` / `bp.With((e, ctx) => …)` |
 | Derived default (fill-only) | `bp.Derive(e => e.Prop, (e, ctx) => …)` |
 | Sequence | `Sequence.Of(1, n => n + 1)` + `.PerSession()` / `.PerParent()` / `.Per<T>()`; `bp.Derive(e => e.Prop, seq)` |
@@ -678,6 +726,8 @@ For each entity in an Add step:
 4. **`Derive`s** run, fill-only and in declaration order. Sequences first reserve every explicit value in the step, then fill the rest.
 5. **Global defaults** (`options.Default`) run, fill-only.
 6. The entity is recorded, along with its parent link and step.
+
+For an input blueprint, every input first gets its traits and customizers (steps 2 and 3); then, per input, its `Derive`s (step 4) and the factory run in order; steps 5 and 6 apply to each output.
 
 `BuildAsync` then:
 
