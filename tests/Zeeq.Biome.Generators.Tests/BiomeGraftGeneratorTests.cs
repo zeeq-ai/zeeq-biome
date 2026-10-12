@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -130,6 +131,7 @@ public sealed class BiomeGraftGeneratorTests
         internal sealed class Brush { }
         internal sealed class Day { }
         internal sealed class Hidden { }
+        internal sealed class GenericBox<T> { }
 
         [BiomeGraft]
         internal static class Blueprints
@@ -147,8 +149,12 @@ public sealed class BiomeGraftGeneratorTests
             internal static readonly Blueprint<Seed, Box> Box = null!;
             internal static readonly Blueprint<Seed, Brush> Brush = null!;
             internal static readonly Blueprint<Seed, Day> Day = null!;
+            internal static readonly Blueprint<Seed, GenericBox<string?>> NullableGeneric = null!;
 
             internal static Blueprint<Seed, Building> Building { get; } = null!;
+            #pragma warning disable CS0414
+            private static readonly Blueprint<Seed, Hidden> PrivateHidden = null!;
+            #pragma warning restore CS0414
 
             [NoGraft]
             internal static readonly Blueprint<Seed, Hidden> Hidden = null!;
@@ -215,6 +221,14 @@ public sealed class BiomeGraftGeneratorTests
                 diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning)
             )
             .IsEmpty();
+        var generated = string.Join(
+            "\n",
+            driver
+                .GetRunResult()
+                .Results.Single()
+                .GeneratedSources.Select(source => source.SourceText.ToString())
+        );
+        await Assert.That(generated.Contains("PrivateHidden", StringComparison.Ordinal)).IsFalse();
         await Verify(driver);
     }
 
@@ -241,6 +255,76 @@ public sealed class BiomeGraftGeneratorTests
                     .All(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
             )
             .IsTrue();
+        var collision = diagnostics.Single(diagnostic => diagnostic.Id == "BIOME001");
+        await Assert.That(collision.AdditionalLocations.Count).IsEqualTo(1);
+        await Assert.That(collision.GetMessage(CultureInfo.InvariantCulture)).Contains("AddSchool");
+        await Assert
+            .That(collision.GetMessage(CultureInfo.InvariantCulture))
+            .Contains("AddSchools");
+        await Assert
+            .That(diagnostics.Count(diagnostic => diagnostic.Id == "BIOME001"))
+            .IsEqualTo(1);
+        await Verify(driver);
+    }
+
+    [Test]
+    public async Task Invalid_graft_names_report_at_members_and_do_not_emit_invalid_code()
+    {
+        const string invalidNames = """
+            using Zeeq.Biome;
+            namespace InvalidGraftNames;
+            internal sealed class Seed { }
+            internal sealed class Entry { }
+            [BiomeGraft]
+            internal static class Blueprints
+            {
+                [Graft("Bad Name")]
+                internal static readonly Blueprint<Seed, Entry> InvalidSingular = null!;
+
+                [Graft(Plural = "Bad Name")]
+                internal static readonly Blueprint<Seed, Entry> InvalidPlural = null!;
+
+                internal static readonly Blueprint<Seed, Entry> Valid = null!;
+            }
+            """;
+
+        var compilation = CreateCompilation(invalidNames, treatWarningsAsErrors: true);
+        var driver = CreateDriver()
+            .RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
+        var diagnostics = driver.GetRunResult().Diagnostics;
+        await Assert
+            .That(diagnostics.Count(diagnostic => diagnostic.Id == "BIOME004"))
+            .IsEqualTo(2);
+        await Assert
+            .That(
+                diagnostics
+                    .Where(diagnostic => diagnostic.Id == "BIOME004")
+                    .All(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error)
+            )
+            .IsTrue();
+        var reportedMemberLines = diagnostics
+            .Where(diagnostic => diagnostic.Id == "BIOME004")
+            .Select(diagnostic => diagnostic.Location.GetLineSpan().Span.Start.Line)
+            .OrderBy(line => line)
+            .ToArray();
+        await Assert.That(reportedMemberLines.SequenceEqual(new[] { 8, 11 })).IsTrue();
+        await Assert
+            .That(
+                updated
+                    .GetDiagnostics()
+                    .Where(diagnostic => diagnostic.Id.StartsWith("CS", StringComparison.Ordinal))
+            )
+            .IsEmpty();
+        var generated = driver
+            .GetRunResult()
+            .Results.Single()
+            .GeneratedSources.Single()
+            .SourceText.ToString();
+        await Assert
+            .That(generated.Contains("InvalidSingular", StringComparison.Ordinal))
+            .IsFalse();
+        await Assert.That(generated.Contains("InvalidPlural", StringComparison.Ordinal)).IsFalse();
+        await Assert.That(generated.Contains("AddValid", StringComparison.Ordinal)).IsTrue();
         await Verify(driver);
     }
 
@@ -271,16 +355,21 @@ public sealed class BiomeGraftGeneratorTests
             internal sealed class Seed { }
             internal sealed class District { }
             internal sealed class School { }
+            internal sealed class GenericBox<T> { }
             [BiomeGraft]
             internal static class Blueprints
             {
                 internal static readonly Blueprint<Seed, District> District = null!;
                 internal static readonly ChildBlueprint<Seed, District, School> School = null!;
+                internal static readonly Blueprint<Seed, GenericBox<string?>> NullableGeneric = null!;
             }
             internal static class ValidUsage
             {
                 internal static void Build(BiomeBuilder<Seed, Seed> builder) =>
-                    builder.AddDistrict(out _).AddSchool(out _);
+                    builder.AddDistrict(out _)
+                        .AddSchool(out _)
+                        .AddNullableGeneric(out GenericBox<string?> item)
+                        .AddNullableGenerics(out GenericBox<string?>[] items, 1);
             }
             """;
 
@@ -325,9 +414,58 @@ public sealed class BiomeGraftGeneratorTests
     }
 
     [Test]
-    public async Task Unrelated_edit_keeps_graft_pipeline_cached_or_unchanged()
+    public async Task Generated_parameter_names_avoid_collisions_with_members_and_parameters()
     {
-        var compilation = CreateCompilation(BlueprintForms);
+        const string source = """
+            using Zeeq.Biome;
+            namespace GraftParameterNames;
+            internal sealed class Seed { }
+            internal sealed class B { }
+            internal sealed class Customize { }
+            internal sealed class Amount { }
+            [BiomeGraft]
+            internal static class Blueprints
+            {
+                internal static readonly Blueprint<Seed, B> B = null!;
+                internal static readonly Blueprint<Seed, Customize> Customize = null!;
+                [Graft(Plural = "Count")]
+                internal static readonly Blueprint<Seed, Amount> Amount = null!;
+            }
+            internal static class Usage
+            {
+                internal static void Build(BiomeBuilder<Seed, Seed> builder)
+                {
+                    builder.AddB(out var b);
+                    builder.AddCustomize(out var customize);
+                    builder.AddAmount(out var amount);
+                    builder.AddCount(out var count, 1);
+                }
+            }
+            """;
+
+        var compilation = CreateCompilation(source, treatWarningsAsErrors: true);
+        var driver = CreateDriver()
+            .RunGeneratorsAndUpdateCompilation(compilation, out var updated, out _);
+        var diagnostics = updated.GetDiagnostics();
+        await Assert
+            .That(diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error))
+            .IsEmpty();
+        await Assert
+            .That(
+                diagnostics.Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Warning)
+            )
+            .IsEmpty();
+        await Verify(driver);
+    }
+
+    [Test]
+    public async Task Unrelated_edit_keeps_graft_transform_cached()
+    {
+        var unrelatedTree = CSharpSyntaxTree.ParseText(
+            "namespace Unrelated; internal sealed class Other { }",
+            ParseOptions
+        );
+        var compilation = CreateCompilation(BlueprintForms).AddSyntaxTrees(unrelatedTree);
         var options = new GeneratorDriverOptions(
             IncrementalGeneratorOutputKind.None,
             trackIncrementalGeneratorSteps: true
@@ -339,27 +477,24 @@ public sealed class BiomeGraftGeneratorTests
         );
         driver = driver.RunGenerators(compilation);
 
-        var editedCompilation = compilation.AddSyntaxTrees(
+        var editedCompilation = compilation.ReplaceSyntaxTree(
+            unrelatedTree,
             CSharpSyntaxTree.ParseText(
-                "namespace Unrelated; internal sealed class Other { }",
+                "namespace Unrelated; internal sealed class Other { /* unrelated edit */ }",
                 ParseOptions
             )
         );
         driver = driver.RunGenerators(editedCompilation);
         var runResult = driver.GetRunResult().Results.Single();
         var reasons = runResult
-            .TrackedSteps["BiomeGraftCatalog"]
+            .TrackedSteps["BiomeGraftSource"]
             .SelectMany(step => step.Outputs)
             .Select(output => output.Reason)
             .ToArray();
 
         await Assert.That(reasons.Length > 0).IsTrue();
         await Assert
-            .That(
-                reasons.All(reason =>
-                    reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged
-                )
-            )
+            .That(reasons.All(reason => reason == IncrementalStepRunReason.Cached))
             .IsTrue();
     }
 

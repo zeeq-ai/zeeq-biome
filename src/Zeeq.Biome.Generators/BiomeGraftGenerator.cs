@@ -15,11 +15,16 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
     private const string BiomeGraftAttribute = "Zeeq.Biome.BiomeGraftAttribute";
     private const string GraftAttribute = "Zeeq.Biome.GraftAttribute";
     private const string NoGraftAttribute = "Zeeq.Biome.NoGraftAttribute";
+    private static readonly SymbolDisplayFormat FullyQualifiedNullableFormat =
+        SymbolDisplayFormat.FullyQualifiedFormat.WithMiscellaneousOptions(
+            SymbolDisplayFormat.FullyQualifiedFormat.MiscellaneousOptions
+                | SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier
+        );
 
     private static readonly DiagnosticDescriptor DuplicateMethod = new(
         "BIOME001",
         "Biome graft method collision",
-        "Blueprint members '{0}' and '{1}' produce the same graft method '{2}' on an overlapping builder",
+        "Blueprint members '{0}' and '{1}' produce overlapping graft overloads on the same builder: {2}",
         "Biome graft",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -49,6 +54,17 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         helpLinkUri: "https://github.com/zeeq-ai/zeeq-biome/issues/20"
     );
 
+    private static readonly DiagnosticDescriptor InvalidGraftName = new(
+        "BIOME004",
+        "Invalid Biome graft name",
+        "Blueprint member '{0}' has an invalid {1} graft name '{2}'; use a valid C# identifier",
+        "Biome graft",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "Use a valid C# identifier for the singular or plural graft name.",
+        helpLinkUri: "https://github.com/zeeq-ai/zeeq-biome/issues/20"
+    );
+
     public void Initialize(IncrementalGeneratorInitializationContext context)
     {
         var catalogs = context
@@ -57,11 +73,28 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                 static (node, _) => node is TypeDeclarationSyntax,
                 static (attributeContext, _) => CreateCatalogModel(attributeContext)
             )
-            .WithTrackingName("BiomeGraftCatalog");
+            .WithTrackingName("BiomeGraftCatalogModel");
+
+        var generatedSources = catalogs
+            .Where(static catalog => catalog.IsSupported)
+            .Select(
+                static (catalog, _) =>
+                    new GeneratedSourceModel(CreateHintName(catalog), RenderCatalog(catalog))
+            )
+            .WithTrackingName("BiomeGraftSource");
 
         context.RegisterSourceOutput(
             catalogs,
-            static (productionContext, catalog) => EmitCatalog(productionContext, catalog)
+            static (productionContext, catalog) =>
+                ReportCatalogDiagnostics(productionContext, catalog)
+        );
+        context.RegisterSourceOutput(
+            generatedSources,
+            static (productionContext, generated) =>
+                productionContext.AddSource(
+                    generated.HintName,
+                    SourceText.From(generated.Source, Encoding.UTF8)
+                )
         );
     }
 
@@ -82,7 +115,10 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         {
             foreach (var member in catalog.GetMembers())
             {
-                if (HasAttribute(member, NoGraftAttribute))
+                if (
+                    HasAttribute(member, NoGraftAttribute)
+                    || !IsAccessibleFromGeneratedSibling(member)
+                )
                 {
                     continue;
                 }
@@ -115,7 +151,13 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                     continue;
                 }
 
-                var (name, plural) = ReadGraftNames(member, member.Name);
+                var (nameOverride, pluralOverride) = ReadGraftNames(member);
+                var name = nameOverride ?? member.Name;
+                var plural = pluralOverride ?? Pluralize(name);
+                var isValidName = IsValidGraftName(name);
+                var isValidPlural = pluralOverride is null
+                    ? isValidName
+                    : IsValidGraftPlural(plural);
                 members.Add(
                     new BlueprintMemberModel(
                         member.Name,
@@ -127,7 +169,13 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                         inputType,
                         outputType,
                         kind,
-                        GetAccessibility(member.DeclaredAccessibility)
+                        GetAccessibility(member.DeclaredAccessibility),
+                        isValidName,
+                        isValidPlural,
+                        pluralOverride is not null,
+                        SourceLocationModel.From(
+                            GetMemberLocation(member, context.TargetNode.GetLocation())
+                        )
                     )
                 );
             }
@@ -143,27 +191,31 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             namespaceName,
             GetAccessibility(catalog.DeclaredAccessibility),
             isSupported,
-            context.TargetNode.GetLocation(),
+            SourceLocationModel.From(context.TargetNode.GetLocation()),
             members.ToImmutable()
         );
     }
 
-    private static void EmitCatalog(SourceProductionContext context, CatalogModel catalog)
+    private static void ReportCatalogDiagnostics(
+        SourceProductionContext context,
+        CatalogModel catalog
+    )
     {
         if (!catalog.IsSupported)
         {
-            context.ReportDiagnostic(Diagnostic.Create(InvalidCatalog, catalog.Location));
+            context.ReportDiagnostic(
+                Diagnostic.Create(InvalidCatalog, catalog.Location.ToLocation())
+            );
             return;
         }
 
         ReportMemberDiagnostics(context, catalog);
-        var source = RenderCatalog(catalog);
-        var hintName =
-            catalog.Namespace.Length == 0
-                ? $"{catalog.Name}.Grafts.g.cs"
-                : $"{catalog.Namespace.Replace('.', '/')}/{catalog.Name}.Grafts.g.cs";
-        context.AddSource(hintName, SourceText.From(source, Encoding.UTF8));
     }
+
+    private static string CreateHintName(CatalogModel catalog) =>
+        catalog.Namespace.Length == 0
+            ? $"{catalog.Name}.Grafts.g.cs"
+            : $"{catalog.Namespace.Replace('.', '/')}/{catalog.Name}.Grafts.g.cs";
 
     private static void ReportMemberDiagnostics(
         SourceProductionContext context,
@@ -172,12 +224,41 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
     {
         foreach (var member in catalog.Members)
         {
-            if (string.Equals(member.Name, member.Plural, StringComparison.Ordinal))
+            if (!member.IsValidName)
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        InvalidGraftName,
+                        member.Location.ToLocation(),
+                        member.SourceName,
+                        "singular",
+                        member.Name
+                    )
+                );
+            }
+
+            if (!member.IsValidPlural && (member.IsValidName || member.HasPluralOverride))
+            {
+                context.ReportDiagnostic(
+                    Diagnostic.Create(
+                        InvalidGraftName,
+                        member.Location.ToLocation(),
+                        member.SourceName,
+                        "plural",
+                        member.Plural
+                    )
+                );
+            }
+
+            if (
+                member.IsValid
+                && string.Equals(member.Name, member.Plural, StringComparison.Ordinal)
+            )
             {
                 context.ReportDiagnostic(
                     Diagnostic.Create(
                         SameSingularAndPlural,
-                        catalog.Location,
+                        member.Location.ToLocation(),
                         member.SourceName,
                         member.Name
                     )
@@ -185,26 +266,43 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             }
         }
 
-        var methods = catalog.Members.SelectMany(member => CreateMethodModels(member)).ToArray();
-        for (var i = 0; i < methods.Length; i++)
+        var members = catalog.Members.Where(member => member.IsValid).ToArray();
+        for (var i = 0; i < members.Length; i++)
         {
-            for (var j = i + 1; j < methods.Length; j++)
+            for (var j = i + 1; j < members.Length; j++)
             {
-                var left = methods[i];
-                var right = methods[j];
-                if (
-                    left.Name == right.Name
-                    && left.Parameters.SequenceEqual(right.Parameters, StringComparer.Ordinal)
-                    && ReceiversOverlap(left.Member, right.Member)
-                )
+                var left = members[i];
+                var right = members[j];
+                if (!ReceiversOverlap(left, right))
+                {
+                    continue;
+                }
+
+                var leftMethods = CreateMethodModels(left).ToArray();
+                var rightMethods = CreateMethodModels(right).ToArray();
+                var overloads = leftMethods
+                    .Where(leftMethod =>
+                        rightMethods.Any(rightMethod =>
+                            leftMethod.Name == rightMethod.Name
+                            && leftMethod.Parameters.SequenceEqual(
+                                rightMethod.Parameters,
+                                StringComparer.Ordinal
+                            )
+                        )
+                    )
+                    .Select(method => method.DisplaySignature)
+                    .ToArray();
+                if (overloads.Length > 0)
                 {
                     context.ReportDiagnostic(
                         Diagnostic.Create(
                             DuplicateMethod,
-                            catalog.Location,
-                            left.Member.SourceName,
-                            right.Member.SourceName,
-                            left.Name
+                            left.Location.ToLocation(),
+                            new[] { right.Location.ToLocation() },
+                            properties: null,
+                            left.SourceName,
+                            right.SourceName,
+                            string.Join("; ", overloads)
                         )
                     );
                 }
@@ -217,18 +315,15 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         var customizer = member.InputType ?? member.OutputType;
         yield return new MethodModel(
             $"Add{member.Name}",
-            new[] { $"out {member.OutputType}", $"global::System.Action<{customizer}>?" },
-            member
+            new[] { $"out {member.OutputType}", $"global::System.Action<{customizer}>?" }
         );
         yield return new MethodModel(
             $"Add{member.Plural}",
-            new[] { $"out {member.OutputType}[]", "int" },
-            member
+            new[] { $"out {member.OutputType}[]", "int" }
         );
         yield return new MethodModel(
             $"Add{member.Plural}",
-            new[] { $"out {member.OutputType}[]", $"params global::System.Action<{customizer}>[]" },
-            member
+            new[] { $"out {member.OutputType}[]", $"params global::System.Action<{customizer}>[]" }
         );
     }
 
@@ -272,7 +367,10 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
 
         foreach (var member in catalog.Members)
         {
-            RenderMethods(source, catalog, member);
+            if (member.IsValid)
+            {
+                RenderMethods(source, catalog, member);
+            }
         }
 
         source.AppendLine("}");
@@ -286,6 +384,30 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
     )
     {
         var customizeType = member.InputType ?? member.OutputType;
+        var singularParameterNames = AllocateUniqueParameterNames(
+            CamelCase(member.Name),
+            "b",
+            "customize"
+        );
+        var pluralCountParameterNames = AllocateUniqueParameterNames(
+            CamelCase(member.Plural),
+            "b",
+            "count"
+        );
+        var pluralCustomizeParameterNames = AllocateUniqueParameterNames(
+            CamelCase(member.Plural),
+            "b",
+            "customize"
+        );
+        var singularOutputName = EscapeIdentifier(singularParameterNames[0]);
+        var singularBuilderName = EscapeIdentifier(singularParameterNames[1]);
+        var singularCustomizeName = EscapeIdentifier(singularParameterNames[2]);
+        var pluralOutputName = EscapeIdentifier(pluralCountParameterNames[0]);
+        var pluralCountBuilderName = EscapeIdentifier(pluralCountParameterNames[1]);
+        var countName = EscapeIdentifier(pluralCountParameterNames[2]);
+        var pluralCustomizeOutputName = EscapeIdentifier(pluralCustomizeParameterNames[0]);
+        var pluralCustomizeBuilderName = EscapeIdentifier(pluralCustomizeParameterNames[1]);
+        var pluralCustomizeName = EscapeIdentifier(pluralCustomizeParameterNames[2]);
         var extensionReceiver = IsRootKind(member.Kind)
             ? $"global::Zeeq.Biome.BiomeBuilder<{member.SeedType}, TAnchor>"
             : $"global::Zeeq.Biome.BiomeBuilder<{member.SeedType}, {member.ParentType}[]>";
@@ -305,20 +427,28 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             .Append(rootGeneric)
             .Append("(this ")
             .Append(extensionReceiver)
-            .Append(" b, out ")
+            .Append(' ')
+            .Append(singularBuilderName)
+            .Append(", out ")
             .Append(member.OutputType)
             .Append(' ')
-            .Append(EscapeIdentifier(CamelCase(member.Name)))
+            .Append(singularOutputName)
             .Append(", global::System.Action<")
             .Append(customizeType)
-            .Append(">? customize = null) =>\n")
-            .Append("        b.AddOne(")
+            .Append(">? ")
+            .Append(singularCustomizeName)
+            .Append(" = null) =>\n")
+            .Append("        ")
+            .Append(singularBuilderName)
+            .Append(".AddOne(")
             .Append(catalog.QualifiedName)
             .Append('.')
             .Append(member.EscapedSourceName)
             .Append(", out ")
-            .Append(EscapeIdentifier(CamelCase(member.Name)))
-            .AppendLine(", customize);");
+            .Append(singularOutputName)
+            .Append(", ")
+            .Append(singularCustomizeName)
+            .AppendLine(");");
 
         source.AppendLine(
             "    /// <summary>Creates the requested number of blueprint outputs.</summary>"
@@ -333,18 +463,26 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             .Append(rootGeneric)
             .Append("(this ")
             .Append(extensionReceiver)
-            .Append(" b, out ")
+            .Append(' ')
+            .Append(pluralCountBuilderName)
+            .Append(", out ")
             .Append(member.OutputType)
             .Append("[] ")
-            .Append(EscapeIdentifier(CamelCase(member.Plural)))
-            .AppendLine(", int count) =>")
-            .Append("        b.Add(")
+            .Append(pluralOutputName)
+            .Append(", int ")
+            .Append(countName)
+            .AppendLine(") =>")
+            .Append("        ")
+            .Append(pluralCountBuilderName)
+            .Append(".Add(")
             .Append(catalog.QualifiedName)
             .Append('.')
             .Append(member.EscapedSourceName)
             .Append(", out ")
-            .Append(EscapeIdentifier(CamelCase(member.Plural)))
-            .AppendLine(", count);");
+            .Append(pluralOutputName)
+            .Append(", ")
+            .Append(countName)
+            .AppendLine(");");
 
         source.AppendLine("    /// <summary>Creates one output per customizer.</summary>");
         source
@@ -357,20 +495,28 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             .Append(rootGeneric)
             .Append("(this ")
             .Append(extensionReceiver)
-            .Append(" b, out ")
+            .Append(' ')
+            .Append(pluralCustomizeBuilderName)
+            .Append(", out ")
             .Append(member.OutputType)
             .Append("[] ")
-            .Append(EscapeIdentifier(CamelCase(member.Plural)))
+            .Append(pluralCustomizeOutputName)
             .Append(", params global::System.Action<")
             .Append(customizeType)
-            .Append(">[] customize) =>\n")
-            .Append("        b.Add(")
+            .Append(">[] ")
+            .Append(pluralCustomizeName)
+            .Append(") =>\n")
+            .Append("        ")
+            .Append(pluralCustomizeBuilderName)
+            .Append(".Add(")
             .Append(catalog.QualifiedName)
             .Append('.')
             .Append(member.EscapedSourceName)
             .Append(", out ")
-            .Append(EscapeIdentifier(CamelCase(member.Plural)))
-            .AppendLine(", customize);")
+            .Append(pluralCustomizeOutputName)
+            .Append(", ")
+            .Append(pluralCustomizeName)
+            .AppendLine(");")
             .AppendLine();
     }
 
@@ -424,7 +570,7 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
     }
 
     private static string Format(ITypeSymbol type) =>
-        type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        type.ToDisplayString(FullyQualifiedNullableFormat);
 
     private static bool IsRootKind(BlueprintKind kind) =>
         kind is BlueprintKind.Root or BlueprintKind.RootInput;
@@ -434,14 +580,14 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             .GetAttributes()
             .Any(attribute => attribute.AttributeClass?.ToDisplayString() == metadataName);
 
-    private static (string Name, string? Plural) ReadGraftNames(ISymbol member, string sourceName)
+    private static (string? Name, string? Plural) ReadGraftNames(ISymbol member)
     {
         var attribute = member
             .GetAttributes()
             .FirstOrDefault(item => item.AttributeClass?.ToDisplayString() == GraftAttribute);
         if (attribute is null)
         {
-            return (sourceName, null);
+            return (null, null);
         }
 
         var name =
@@ -452,7 +598,44 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             attribute
                 .NamedArguments.FirstOrDefault(argument => argument.Key == "Plural")
                 .Value.Value as string;
-        return (string.IsNullOrWhiteSpace(name) ? sourceName : name ?? sourceName, plural);
+        return (name, plural);
+    }
+
+    private static bool IsAccessibleFromGeneratedSibling(ISymbol member) =>
+        member.DeclaredAccessibility
+            is Accessibility.Public
+                or Accessibility.Internal
+                or Accessibility.ProtectedOrInternal;
+
+    private static bool IsValidGraftName(string name) =>
+        !string.IsNullOrWhiteSpace(name) && SyntaxFacts.IsValidIdentifier($"Add{name}");
+
+    private static bool IsValidGraftPlural(string plural) =>
+        !string.IsNullOrWhiteSpace(plural)
+        && SyntaxFacts.IsValidIdentifier($"Add{plural}")
+        && SyntaxFacts.IsValidIdentifier(EscapeIdentifier(CamelCase(plural)));
+
+    private static Location GetMemberLocation(ISymbol member, Location fallback) =>
+        member.Locations.FirstOrDefault(location => location.IsInSource) ?? fallback;
+
+    private static string[] AllocateUniqueParameterNames(params string[] preferredNames)
+    {
+        var used = new HashSet<string>(StringComparer.Ordinal);
+        var allocated = new string[preferredNames.Length];
+        for (var i = 0; i < preferredNames.Length; i++)
+        {
+            var baseName = preferredNames[i];
+            var name = baseName;
+            var suffix = 2;
+            while (!used.Add(name))
+            {
+                name = $"{baseName}{suffix++}";
+            }
+
+            allocated[i] = name;
+        }
+
+        return allocated;
     }
 
     private static string Pluralize(string singular)
@@ -517,7 +700,11 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         string? inputType,
         string outputType,
         BlueprintKind kind,
-        string accessibility
+        string accessibility,
+        bool isValidName,
+        bool isValidPlural,
+        bool hasPluralOverride,
+        SourceLocationModel location
     ) : IEquatable<BlueprintMemberModel>
     {
         public string SourceName { get; } = sourceName;
@@ -530,6 +717,11 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         public string OutputType { get; } = outputType;
         public BlueprintKind Kind { get; } = kind;
         public string Accessibility { get; } = accessibility;
+        public bool IsValidName { get; } = isValidName;
+        public bool IsValidPlural { get; } = isValidPlural;
+        public bool HasPluralOverride { get; } = hasPluralOverride;
+        public bool IsValid => IsValidName && IsValidPlural;
+        public SourceLocationModel Location { get; } = location;
 
         public bool Equals(BlueprintMemberModel? other) =>
             other is not null
@@ -542,7 +734,11 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             && InputType == other.InputType
             && OutputType == other.OutputType
             && Kind == other.Kind
-            && Accessibility == other.Accessibility;
+            && Accessibility == other.Accessibility
+            && IsValidName == other.IsValidName
+            && IsValidPlural == other.IsValidPlural
+            && HasPluralOverride == other.HasPluralOverride
+            && Location.Equals(other.Location);
 
         public override bool Equals(object? obj) =>
             obj is BlueprintMemberModel other && Equals(other);
@@ -560,7 +756,11 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                 hash = (hash * 397) ^ (InputType?.GetHashCode() ?? 0);
                 hash = (hash * 397) ^ OutputType.GetHashCode();
                 hash = (hash * 397) ^ (int)Kind;
-                return (hash * 397) ^ Accessibility.GetHashCode();
+                hash = (hash * 397) ^ Accessibility.GetHashCode();
+                hash = (hash * 397) ^ IsValidName.GetHashCode();
+                hash = (hash * 397) ^ IsValidPlural.GetHashCode();
+                hash = (hash * 397) ^ HasPluralOverride.GetHashCode();
+                return (hash * 397) ^ Location.GetHashCode();
             }
         }
     }
@@ -571,7 +771,7 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         string @namespace,
         string accessibility,
         bool isSupported,
-        Location location,
+        SourceLocationModel location,
         ImmutableArray<BlueprintMemberModel> members
     ) : IEquatable<CatalogModel>
     {
@@ -580,7 +780,7 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         public string Namespace { get; } = @namespace;
         public string Accessibility { get; } = accessibility;
         public bool IsSupported { get; } = isSupported;
-        public Location Location { get; } = location;
+        public SourceLocationModel Location { get; } = location;
         public ImmutableArray<BlueprintMemberModel> Members { get; } = members;
 
         public bool Equals(CatalogModel? other) =>
@@ -590,8 +790,7 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
             && Namespace == other.Namespace
             && Accessibility == other.Accessibility
             && IsSupported == other.IsSupported
-            && Location.SourceTree?.FilePath == other.Location.SourceTree?.FilePath
-            && Location.SourceSpan.Equals(other.Location.SourceSpan)
+            && Location.Equals(other.Location)
             && Members.SequenceEqual(other.Members);
 
         public override bool Equals(object? obj) => obj is CatalogModel other && Equals(other);
@@ -605,8 +804,7 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
                 hash = (hash * 397) ^ Namespace.GetHashCode();
                 hash = (hash * 397) ^ Accessibility.GetHashCode();
                 hash = (hash * 397) ^ IsSupported.GetHashCode();
-                hash = (hash * 397) ^ (Location.SourceTree?.FilePath?.GetHashCode() ?? 0);
-                hash = (hash * 397) ^ Location.SourceSpan.GetHashCode();
+                hash = (hash * 397) ^ Location.GetHashCode();
                 foreach (var member in Members)
                 {
                     hash = (hash * 397) ^ member.GetHashCode();
@@ -616,10 +814,101 @@ public sealed class BiomeGraftGenerator : IIncrementalGenerator
         }
     }
 
-    private sealed class MethodModel(string name, string[] parameters, BlueprintMemberModel member)
+    private sealed class MethodModel(string name, string[] parameters)
     {
         public string Name { get; } = name;
         public string[] Parameters { get; } = parameters;
-        public BlueprintMemberModel Member { get; } = member;
+        public string DisplaySignature => $"{Name}({string.Join(", ", Parameters)})";
+    }
+
+    private sealed class GeneratedSourceModel(string hintName, string source)
+        : IEquatable<GeneratedSourceModel>
+    {
+        public string HintName { get; } = hintName;
+        public string Source { get; } = source;
+
+        public bool Equals(GeneratedSourceModel? other) =>
+            other is not null && HintName == other.HintName && Source == other.Source;
+
+        public override bool Equals(object? obj) =>
+            obj is GeneratedSourceModel other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (HintName.GetHashCode() * 397) ^ Source.GetHashCode();
+            }
+        }
+    }
+
+    private sealed class SourceLocationModel(
+        string filePath,
+        int start,
+        int length,
+        int startLine,
+        int startCharacter,
+        int endLine,
+        int endCharacter
+    ) : IEquatable<SourceLocationModel>
+    {
+        public string FilePath { get; } = filePath;
+        public int Start { get; } = start;
+        public int Length { get; } = length;
+        public int StartLine { get; } = startLine;
+        public int StartCharacter { get; } = startCharacter;
+        public int EndLine { get; } = endLine;
+        public int EndCharacter { get; } = endCharacter;
+
+        public static SourceLocationModel From(Location location)
+        {
+            var lineSpan = location.GetLineSpan();
+            return new SourceLocationModel(
+                lineSpan.Path,
+                location.SourceSpan.Start,
+                location.SourceSpan.Length,
+                lineSpan.Span.Start.Line,
+                lineSpan.Span.Start.Character,
+                lineSpan.Span.End.Line,
+                lineSpan.Span.End.Character
+            );
+        }
+
+        public Location ToLocation() =>
+            Location.Create(
+                FilePath,
+                new TextSpan(Start, Length),
+                new LinePositionSpan(
+                    new LinePosition(StartLine, StartCharacter),
+                    new LinePosition(EndLine, EndCharacter)
+                )
+            );
+
+        public bool Equals(SourceLocationModel? other) =>
+            other is not null
+            && FilePath == other.FilePath
+            && Start == other.Start
+            && Length == other.Length
+            && StartLine == other.StartLine
+            && StartCharacter == other.StartCharacter
+            && EndLine == other.EndLine
+            && EndCharacter == other.EndCharacter;
+
+        public override bool Equals(object? obj) =>
+            obj is SourceLocationModel other && Equals(other);
+
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                var hash = FilePath.GetHashCode();
+                hash = (hash * 397) ^ Start;
+                hash = (hash * 397) ^ Length;
+                hash = (hash * 397) ^ StartLine;
+                hash = (hash * 397) ^ StartCharacter;
+                hash = (hash * 397) ^ EndLine;
+                return (hash * 397) ^ EndCharacter;
+            }
+        }
     }
 }

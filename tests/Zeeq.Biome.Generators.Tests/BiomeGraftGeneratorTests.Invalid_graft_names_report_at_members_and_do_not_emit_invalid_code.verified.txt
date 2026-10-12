@@ -1,0 +1,34 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: : (8,52)-(8,67),
+      Message: Blueprint member 'InvalidSingular' has an invalid singular graft name 'Bad Name'; use a valid C# identifier,
+      Severity: Error,
+      Descriptor: {
+        Id: BIOME004,
+        Title: Invalid Biome graft name,
+        Description: Use a valid C# identifier for the singular or plural graft name.,
+        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
+        MessageFormat: Blueprint member '{0}' has an invalid {1} graft name '{2}'; use a valid C# identifier,
+        Category: Biome graft,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: : (11,52)-(11,65),
+      Message: Blueprint member 'InvalidPlural' has an invalid plural graft name 'Bad Name'; use a valid C# identifier,
+      Severity: Error,
+      Descriptor: {
+        Id: BIOME004,
+        Title: Invalid Biome graft name,
+        Description: Use a valid C# identifier for the singular or plural graft name.,
+        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
+        MessageFormat: Blueprint member '{0}' has an invalid {1} graft name '{2}'; use a valid C# identifier,
+        Category: Biome graft,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

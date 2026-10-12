@@ -1,15 +1,7 @@
 ﻿{
   Diagnostics: [
     {
-      Location: /*
-
-[BiomeGraft]
-^^^^^^^^^^^^
-internal class NotStatic { }
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-*/
- : (9,0)-(10,28),
+      Location: : (9,0)-(10,28),
       Message: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
       Severity: Error,
       Descriptor: {
@@ -24,15 +16,7 @@ internal class NotStatic { }
       }
     },
     {
-      Location: /*
-
-[BiomeGraft]
-^^^^^^^^^^^^
-internal static class GenericCatalog<T> { }
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-*/
- : (12,0)-(13,43),
+      Location: : (12,0)-(13,43),
       Message: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
       Severity: Error,
       Descriptor: {
@@ -47,15 +31,7 @@ internal static class GenericCatalog<T> { }
       }
     },
     {
-      Location: /*
-{
-    [BiomeGraft]
-    ^^^^^^^^^^^^
-    internal static class Nested { }
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-}
-*/
- : (17,4)-(18,36),
+      Location: : (17,4)-(18,36),
       Message: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
       Severity: Error,
       Descriptor: {
@@ -70,34 +46,7 @@ internal static class GenericCatalog<T> { }
       }
     },
     {
-      Location: /*
-
-[BiomeGraft]
-^^^^^^^^^^^^
-internal static class Diagnostics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-{
-^
-    [Graft("School")]
-^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly Blueprint<Seed, School> RootSchool = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-    [Graft("School")]
-^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly ChildBlueprint<Seed, District, School> ChildSchool = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-    [Graft(Plural = "News")]
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly Blueprint<Seed, News> News = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-}
-^
-*/
- : (21,0)-(32,1),
+      Location: : (31,51)-(31,55),
       Message: Blueprint member 'News' uses 'News' for both singular and plural; set [Graft(Plural = "...")],
       Severity: Warning,
       WarningLevel: 1,
@@ -113,35 +62,8 @@ internal static class Diagnostics
       }
     },
     {
-      Location: /*
-
-[BiomeGraft]
-^^^^^^^^^^^^
-internal static class Diagnostics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-{
-^
-    [Graft("School")]
-^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly Blueprint<Seed, School> RootSchool = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-    [Graft("School")]
-^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly ChildBlueprint<Seed, District, School> ChildSchool = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-    [Graft(Plural = "News")]
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly Blueprint<Seed, News> News = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-}
-^
-*/
- : (21,0)-(32,1),
-      Message: Blueprint members 'RootSchool' and 'ChildSchool' produce the same graft method 'AddSchool' on an overlapping builder,
+      Location: : (25,53)-(25,63),
+      Message: Blueprint members 'RootSchool' and 'ChildSchool' produce overlapping graft overloads on the same builder: AddSchool(out global::GraftDiagnostics.School, global::System.Action<global::GraftDiagnostics.School>?); AddSchools(out global::GraftDiagnostics.School[], int); AddSchools(out global::GraftDiagnostics.School[], params global::System.Action<global::GraftDiagnostics.School>[]),
       Severity: Warning,
       WarningLevel: 1,
       Descriptor: {
@@ -149,93 +71,7 @@ internal static class Diagnostics
         Title: Biome graft method collision,
         Description: Rename one graft with [Graft("Name")] so callers can identify the intended blueprint.,
         HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
-        MessageFormat: Blueprint members '{0}' and '{1}' produce the same graft method '{2}' on an overlapping builder,
-        Category: Biome graft,
-        DefaultSeverity: Warning,
-        IsEnabledByDefault: true
-      }
-    },
-    {
-      Location: /*
-
-[BiomeGraft]
-^^^^^^^^^^^^
-internal static class Diagnostics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-{
-^
-    [Graft("School")]
-^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly Blueprint<Seed, School> RootSchool = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-    [Graft("School")]
-^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly ChildBlueprint<Seed, District, School> ChildSchool = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-    [Graft(Plural = "News")]
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly Blueprint<Seed, News> News = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-}
-^
-*/
- : (21,0)-(32,1),
-      Message: Blueprint members 'RootSchool' and 'ChildSchool' produce the same graft method 'AddSchools' on an overlapping builder,
-      Severity: Warning,
-      WarningLevel: 1,
-      Descriptor: {
-        Id: BIOME001,
-        Title: Biome graft method collision,
-        Description: Rename one graft with [Graft("Name")] so callers can identify the intended blueprint.,
-        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
-        MessageFormat: Blueprint members '{0}' and '{1}' produce the same graft method '{2}' on an overlapping builder,
-        Category: Biome graft,
-        DefaultSeverity: Warning,
-        IsEnabledByDefault: true
-      }
-    },
-    {
-      Location: /*
-
-[BiomeGraft]
-^^^^^^^^^^^^
-internal static class Diagnostics
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-{
-^
-    [Graft("School")]
-^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly Blueprint<Seed, School> RootSchool = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-    [Graft("School")]
-^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly ChildBlueprint<Seed, District, School> ChildSchool = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-    [Graft(Plural = "News")]
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    internal static readonly Blueprint<Seed, News> News = null!;
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-}
-^
-*/
- : (21,0)-(32,1),
-      Message: Blueprint members 'RootSchool' and 'ChildSchool' produce the same graft method 'AddSchools' on an overlapping builder,
-      Severity: Warning,
-      WarningLevel: 1,
-      Descriptor: {
-        Id: BIOME001,
-        Title: Biome graft method collision,
-        Description: Rename one graft with [Graft("Name")] so callers can identify the intended blueprint.,
-        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
-        MessageFormat: Blueprint members '{0}' and '{1}' produce the same graft method '{2}' on an overlapping builder,
+        MessageFormat: Blueprint members '{0}' and '{1}' produce overlapping graft overloads on the same builder: {2},
         Category: Biome graft,
         DefaultSeverity: Warning,
         IsEnabledByDefault: true

@@ -129,6 +129,16 @@ internal static class BlueprintsGrafts
         b.Add(global::GraftFixtures.Blueprints.Day, out days, customize);
 
     /// <summary>Creates one default blueprint output.</summary>
+    internal static global::Zeeq.Biome.BiomeBuilder<global::GraftFixtures.Seed, global::GraftFixtures.GenericBox<string?>[]> AddNullableGeneric<TAnchor>(this global::Zeeq.Biome.BiomeBuilder<global::GraftFixtures.Seed, TAnchor> b, out global::GraftFixtures.GenericBox<string?> nullableGeneric, global::System.Action<global::GraftFixtures.GenericBox<string?>>? customize = null) =>
+        b.AddOne(global::GraftFixtures.Blueprints.NullableGeneric, out nullableGeneric, customize);
+    /// <summary>Creates the requested number of blueprint outputs.</summary>
+    internal static global::Zeeq.Biome.BiomeBuilder<global::GraftFixtures.Seed, global::GraftFixtures.GenericBox<string?>[]> AddNullableGenerics<TAnchor>(this global::Zeeq.Biome.BiomeBuilder<global::GraftFixtures.Seed, TAnchor> b, out global::GraftFixtures.GenericBox<string?>[] nullableGenerics, int count) =>
+        b.Add(global::GraftFixtures.Blueprints.NullableGeneric, out nullableGenerics, count);
+    /// <summary>Creates one output per customizer.</summary>
+    internal static global::Zeeq.Biome.BiomeBuilder<global::GraftFixtures.Seed, global::GraftFixtures.GenericBox<string?>[]> AddNullableGenerics<TAnchor>(this global::Zeeq.Biome.BiomeBuilder<global::GraftFixtures.Seed, TAnchor> b, out global::GraftFixtures.GenericBox<string?>[] nullableGenerics, params global::System.Action<global::GraftFixtures.GenericBox<string?>>[] customize) =>
+        b.Add(global::GraftFixtures.Blueprints.NullableGeneric, out nullableGenerics, customize);
+
+    /// <summary>Creates one default blueprint output.</summary>
     internal static global::Zeeq.Biome.BiomeBuilder<global::GraftFixtures.Seed, global::GraftFixtures.Building[]> AddBuilding<TAnchor>(this global::Zeeq.Biome.BiomeBuilder<global::GraftFixtures.Seed, TAnchor> b, out global::GraftFixtures.Building building, global::System.Action<global::GraftFixtures.Building>? customize = null) =>
         b.AddOne(global::GraftFixtures.Blueprints.Building, out building, customize);
     /// <summary>Creates the requested number of blueprint outputs.</summary>
