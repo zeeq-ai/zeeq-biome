@@ -61,10 +61,10 @@ defineProps<{
               x2="1"
               y2="0"
             >
-              <stop stop-color="#79bd3e" />
+              <stop stop-color="#d3ec13" />
               <stop
                 offset="1"
-                stop-color="#009b48"
+                stop-color="#acbe10"
               />
             </linearGradient>
           </defs>

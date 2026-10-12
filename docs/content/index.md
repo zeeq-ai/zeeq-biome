@@ -12,7 +12,7 @@ orientation: horizontal
 :hero-background
 
 #title
-Readable tests. [Less context for your agents]{.text-primary}.
+Readable tests. [Less context for your agents]{.brand-gradient-text}.
 
 #description
 Tests give coding agents a way to check that their changes produce the intended behavior. **Zeeq Biome** keeps routine setup in reusable blueprints, making tests terse and readable. With fewer setup details in each test, you and your agents need less context to author and understand it. It targets .NET 10; the extension-block examples use C# 14.
