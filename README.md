@@ -6,10 +6,16 @@
 Terse, readable test setup for .NET. A **biome** is your app's entity graph in miniature: just the rows one test needs, wired together correctly. You declare one **blueprint** per entity type that produces valid, uninteresting defaults. Tests then build scenarios as short fluent chains that mention only the properties under test. Parents and children are typed, numbering and ordering come from sequences, the clock is frozen, and persistence is pluggable (EF Core or none). Defaults never overwrite a value the test set.
 
 ```csharp
+// Example from zeeq-app repo (for zeeq.ai)
 await TestBiome.Start(_db, out var seed)
     .AddCodeRepository(out var repo)
-    .AddPullRequest(out var pr, p => p.State = PullRequestState.Closed)   // the property under test
+    .AddPullRequest(
+        out var pr,
+        p => p.State = PullRequestState.Closed
+    )   // 👆 the only property under test for this scenario
     .BuildAsync();
+
+// Now test our query, behavior, etc. that is dependent on `PullRequest.State`.
 ```
 
 > 💡 Steal this idea; point your agent at <https://zeeq-ai.github.io/zeeq-biome/llms.txt> and ask it to build it for TypeScript, Rust, Go, etc.
@@ -33,18 +39,9 @@ Tests make expected behavior concrete, and they give an agent a way to check its
 
 Take a multi-tenant school system. A district report test needs one district with two schools. Here is the same setup with and without Biome:
 
-**With Biome**
+**❌ Without Biome**
 
-```csharp
-await TestBiome.Start(_db, out _)
-    .AddDistrict(out var district)
-    .AddSchools(out var schools, 2)
-    .BuildAsync();
-_db.ChangeTracker.Clear();
-```
-
-<details>
-<summary>Without Biome</summary>
+Typical test setup code will be repetitive, verbose, and obfuscate the scenario under test:
 
 ```csharp
 var now = DateTimeOffset.UtcNow;
@@ -81,7 +78,17 @@ await _db.SaveChangesAsync();
 _db.ChangeTracker.Clear();
 ```
 
-</details>
+Biome provides the framework and structure to remove boilerplate, improve its reuse, and make tests more readable and maintainable.
+
+**✅ With Biome**
+
+```csharp
+await TestBiome.Start(_db, out _)
+    .AddDistrict(out var district)
+    .AddSchools(out var schools, 2)
+    .BuildAsync();
+_db.ChangeTracker.Clear();
+```
 
 Both build the same graph. With Biome, the IDs, tenant links and timestamps live once in the blueprints, so the test reads as the scenario. The savings compound as the suite grows: less to write, less to review, less agent context spent on routine values.
 
