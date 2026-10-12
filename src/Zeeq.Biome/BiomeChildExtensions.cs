@@ -135,6 +135,163 @@ public static class BiomeChildExtensions
             return new(builder.Session, created);
         }
 
+        /// <summary>Adds one default child per parent and re-anchors to its output.</summary>
+        public BiomeBuilder<TSeed, T[]> Add<TInput, T>(
+            ChildInputBlueprint<TSeed, TParent, TInput, T> bp,
+            out T[] created
+        )
+            where TInput : class
+            where T : class => builder.AddChildInputCore(bp, out created, 1, null);
+
+        /// <summary>Adds the requested count per parent and re-anchors to the output array.</summary>
+        public BiomeBuilder<TSeed, T[]> Add<TInput, T>(
+            ChildInputBlueprint<TSeed, TParent, TInput, T> bp,
+            out T[] created,
+            int count
+        )
+            where TInput : class
+            where T : class => builder.AddChildInputCore(bp, out created, count, null);
+
+        /// <summary>Adds one output per customizer per parent; empty customizers create one default output.</summary>
+        /// <remarks>Comma-separated delegates create separate entities. Combine delegates with + to stack traits on one entity.</remarks>
+        public BiomeBuilder<TSeed, T[]> Add<TInput, T>(
+            ChildInputBlueprint<TSeed, TParent, TInput, T> bp,
+            out T[] created,
+            params Action<TInput>[] customize
+        )
+            where TInput : class
+            where T : class
+        {
+            builder.Session.EnsureOpen();
+            CustomizerValidation.Validate(customize);
+            return builder.AddChildInputCore(
+                bp,
+                out created,
+                Math.Max(1, customize.Length),
+                customize.Length == 0 ? null : (entity, ctx) => customize[ctx.Index](entity)
+            );
+        }
+
+        /// <summary>Adds one output per context-aware customizer per parent.</summary>
+        /// <remarks>When mixing plain and context-aware traits, adapt plain traits to the context-aware form.</remarks>
+        public BiomeBuilder<TSeed, T[]> Add<TInput, T>(
+            ChildInputBlueprint<TSeed, TParent, TInput, T> bp,
+            out T[] created,
+            params Action<TInput, ChildContext<TSeed, TParent>>[] customize
+        )
+            where TInput : class
+            where T : class
+        {
+            builder.Session.EnsureOpen();
+            CustomizerValidation.Validate(customize);
+            return builder.AddChildInputCore(
+                bp,
+                out created,
+                Math.Max(1, customize.Length),
+                customize.Length == 0 ? null : (entity, ctx) => customize[ctx.Index](entity, ctx)
+            );
+        }
+
+        /// <summary>Adds exactly one output with an optional customizer (requires exactly one parent).</summary>
+        public BiomeBuilder<TSeed, T[]> AddOne<TInput, T>(
+            ChildInputBlueprint<TSeed, TParent, TInput, T> bp,
+            out T created,
+            Action<TInput>? customize = null
+        )
+            where TInput : class
+            where T : class
+        {
+            builder.RequireSingleParent();
+            var result = builder.AddChildInputCore(
+                bp,
+                out var items,
+                1,
+                customize is null ? null : (entity, _) => customize(entity)
+            );
+            created = items[0];
+            return result;
+        }
+
+        /// <summary>Adds exactly one output with a context-aware customizer (requires exactly one parent).</summary>
+        public BiomeBuilder<TSeed, T[]> AddOne<TInput, T>(
+            ChildInputBlueprint<TSeed, TParent, TInput, T> bp,
+            out T created,
+            Action<TInput, ChildContext<TSeed, TParent>> customize
+        )
+            where TInput : class
+            where T : class
+        {
+            builder.Session.EnsureOpen();
+            ArgumentNullException.ThrowIfNull(customize);
+            builder.RequireSingleParent();
+            var result = builder.AddChildInputCore(bp, out var items, 1, customize);
+            created = items[0];
+            return result;
+        }
+
+        private BiomeBuilder<TSeed, T[]> AddChildInputCore<TInput, T>(
+            ChildInputBlueprint<TSeed, TParent, TInput, T> bp,
+            out T[] created,
+            int count,
+            Action<TInput, ChildContext<TSeed, TParent>>? customize
+        )
+            where TInput : class
+            where T : class
+        {
+            builder.Session.EnsureOpen();
+            ArgumentNullException.ThrowIfNull(bp);
+            ArgumentOutOfRangeException.ThrowIfNegative(count);
+            builder.Session.ValidateParents(builder.Anchor);
+            created = builder.Session.ConstructStep(() =>
+            {
+                List<(TInput Entity, BiomeContext<TSeed> Context)> step = [];
+                for (var p = 0; p < builder.Anchor.Length; p++)
+                {
+                    var parent = builder.Anchor[p];
+                    ArgumentNullException.ThrowIfNull(parent);
+                    for (var i = 0; i < count; i++)
+                    {
+                        var ctx = new ChildContext<TSeed, TParent>(builder.Session, i, parent, p);
+                        var entity =
+                            bp.NewInput()
+                            ?? throw new InvalidOperationException(
+                                "A blueprint factory returned null."
+                            );
+                        foreach (var trait in bp.Traits)
+                        {
+                            trait(entity, ctx);
+                        }
+                        customize?.Invoke(entity, ctx);
+                        step.Add((entity, ctx));
+                    }
+                }
+                foreach (var derive in bp.Derives)
+                {
+                    foreach (var (input, ctx) in step)
+                    {
+                        derive.Reserve(input, ctx);
+                    }
+                }
+                List<(T Entity, BiomeContext<TSeed> Context)> outputs = [];
+                foreach (var (input, context) in step)
+                {
+                    var ctx = (ChildContext<TSeed, TParent>)context;
+                    foreach (var derive in bp.Derives)
+                    {
+                        derive.Apply(input, ctx);
+                    }
+                    var entity =
+                        bp.Factory(ctx.Parent, input, ctx)
+                        ?? throw new InvalidOperationException(
+                            "An input blueprint factory returned null."
+                        );
+                    outputs.Add((entity, ctx));
+                }
+                return builder.Session.Complete(outputs, [], bp.IsTransient);
+            });
+            return new(builder.Session, created);
+        }
+
         private void RequireSingleParent()
         {
             builder.Session.EnsureOpen();
