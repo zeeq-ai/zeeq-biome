@@ -9,7 +9,8 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "lint": "eslint .",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "render:logo": "node scripts/render-logo.mjs"
   },
   "dependencies": {
     "@iconify-json/lucide": "^1.2.139",
@@ -34,6 +35,7 @@
     "@nuxt/eslint": "^1.17.0",
     "eslint": "^10.12.0",
     "eslint-plugin-better-tailwindcss": "^4.7.0",
+    "sharp": "^0.35.5",
     "typescript": "^6.0.3",
     "vue-tsc": "^3.3.12"
   },

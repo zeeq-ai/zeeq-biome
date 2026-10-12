@@ -46,25 +46,35 @@ defineProps<{
 
       <div class="flex items-center gap-4">
         <svg
-          class="size-10"
-          viewBox="0 0 64 64"
+          class="shrink-0"
+          width="42"
+          height="48"
+          viewBox="0 0 242 280"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
         >
+          <defs>
+            <linearGradient
+              id="og-logo-gradient"
+              x1="0"
+              y1="1"
+              x2="1"
+              y2="0"
+            >
+              <stop stop-color="#79bd3e" />
+              <stop
+                offset="1"
+                stop-color="#009b48"
+              />
+            </linearGradient>
+          </defs>
           <path
-            d="M17 9V55M17 9H31A11 11 0 0 1 31 31H17M17 31H31A11 12 0 0 1 31 55H17"
-            stroke="#c026d3"
-            stroke-width="6.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
+            fill="none"
+            stroke="url(#og-logo-gradient)"
+            stroke-width="38"
+            stroke-linejoin="miter"
+            d="M182 52H110C62 52 44 68 44 117V140H119C167 140 182 124 182 78Z M44 140H126C189 140 208 158 208 211V230H112C61 230 44 198 44 165Z"
           />
-          <path
-            d="M43.8 20V43"
-            stroke="#e879f9"
-            stroke-width="2.4"
-            stroke-linecap="round"
-          />
-          <g fill="#e879f9"><path d="M43.8 20Q54.7 17.5 57.2 6.6Q46.2 9 43.8 20Z" /><path d="M43.8 43Q54.7 40.5 57.2 29.6Q46.2 32 43.8 43Z" /><path d="M43.8 32.5Q42.6 25.1 35.3 24Q36.4 31.4 43.8 32.5Z" /></g>
         </svg>
         <div class="h-px flex-1 bg-border" />
         <span class="text-xl text-dimmed">Zeeq Biome · zeeq-ai.github.io/zeeq-biome</span>

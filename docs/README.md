@@ -43,4 +43,10 @@ Releases deploy the site automatically (`.github/workflows/release.yml` -> `docs
 
 ## Logo
 
-`public/logo.svg` is the mark (a bold **B** whose bowls sprout leaves). `public/favicon.svg` is a simplified variant for small sizes, and `logo.png` / `favicon.ico` / `apple-touch-icon.png` are rendered from them. The inline copy in `app/components/AppLogo.vue` and the OG image template should be updated together with the SVG.
+`public/logo.svg` is the mark: a leaf-shaped **B** with a green gradient (`#79bd3e` to `#009b48`), a wider lower leaf and a uniform 38-unit stroke. `public/favicon.svg` has the same geometry with its own gradient id. `logo.png` (256px), `favicon.ico` (16/32/48) and `apple-touch-icon.png` (180px) are rendered from them:
+
+```sh
+pnpm run render:logo     # scripts/render-logo.mjs, uses sharp
+```
+
+The header (`app/components/AppLogo.vue`) and the OG image (`app/components/OgImage/Docs.takumi.vue`) hold inline copies of the path. Update them together with the SVGs. Keep each gradient `id` unique, because `AppLogo` can render more than once on a page (it derives the id with `useId()`).
