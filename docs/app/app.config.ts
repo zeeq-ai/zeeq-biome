@@ -1,7 +1,7 @@
 export default defineAppConfig({
   ui: {
     colors: {
-      primary: 'fuchsia',
+      primary: 'green',
       neutral: 'zinc'
     },
     footer: {
