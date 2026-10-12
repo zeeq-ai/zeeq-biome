@@ -58,7 +58,7 @@ zeeq-app entities make many properties `init`. Examples:
 | Tests vary it, and it is `init` | Use an **input blueprint** (`FromInput` / `ChildFromInput`): the prototype's settable properties become the input, and the factory sets the `init` values (step 3). |
 | Tests vary it, and the model already has a `set` | Customize the entity directly. |
 
-An input blueprint needs a Zeeq.Biome release newer than 1.0.1; ordinary entity outputs and `ChildFromInput` are not in 1.0.1. Until one is published, keep the old builder for those types, and don't pin 1.0.1 expecting these APIs.
+An input blueprint with an ordinary entity output, or `ChildFromInput`, needs the prerelease `Zeeq.Biome` `1.1.0-rc.1`; they are not in 1.0.1, so don't pin 1.0.1 expecting them. Pin `1.1.0-rc.1` explicitly for `Zeeq.Biome` and use the same version for `Zeeq.Biome.EntityFrameworkCore`. Aggregates work in both.
 
 ## Step 3: a prototype with derived defaults (`PendingInvitationPrototype`)
 

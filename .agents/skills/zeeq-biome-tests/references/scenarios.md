@@ -151,7 +151,7 @@ await TestBiome.Start(out _)
     .BuildAsync();
 ```
 
-Inputs aren't rows: `Under`, `Transient()`, `All<T>()` and `Last<T>()` work on the outputs, and `All<Input>()` is empty. Ordinary-entity inputs and `ChildFromInput` need a Zeeq.Biome release newer than 1.0.1.
+Inputs aren't rows: `Under`, `Transient()`, `All<T>()` and `Last<T>()` work on the outputs, and `All<Input>()` is empty. Ordinary-entity inputs and `ChildFromInput` need the prerelease `Zeeq.Biome` `1.1.0-rc.1` (pinned explicitly; 1.0.1 doesn't have them).
 
 ## 8. A pure unit test (no database)
 

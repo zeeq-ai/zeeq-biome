@@ -46,7 +46,7 @@ description: Use when creating or changing Zeeq.Biome test infrastructure. That 
 - The input is construction data: it is not recorded or saved, can't be a parent, and `All<TInput>()` is empty. A root input blueprint stays a root after `.Under(…)`; it gets no parent.
 - Use inputs for rows with init-only properties tests vary, for one choice that drives several values, or for aggregates. A plain settable entity is simpler as a normal blueprint.
 - `Derive` fills an input property only while it equals `default`. On an `int?`/`bool?` input an explicit `0`/`false` is kept, but an explicit `null` is still refilled if a `Derive` targets it. Output global `Default`s can also replace `null`/`0`/`false` on the output. There is no presence API.
-- **Availability:** ordinary outputs and `ChildFromInput` are not in `Zeeq.Biome` 1.0.1 (1.0.1 `FromInput` is aggregate-only). Don't tell users to pin 1.0.1 for them; they need a published release newer than 1.0.1.
+- **Availability:** ordinary outputs and `ChildFromInput` are in the prerelease `Zeeq.Biome` `1.1.0-rc.1` and not in 1.0.1 (1.0.1 `FromInput` is aggregate-only). Don't tell users to pin 1.0.1 for them. Package managers don't select a prerelease by default, so pin it: `--version 1.1.0-rc.1` for `Zeeq.Biome` (or `<PackageVersion Include="Zeeq.Biome" Version="1.1.0-rc.1" />` under central package management), and the same version for `Zeeq.Biome.EntityFrameworkCore` if it is used. Don't claim a stable 1.1.0 exists.
 - Aggregate parts aren't tracked as parents, so child blueprints of an aggregate take the aggregate type as `TParent`.
 
 ## Scenario helpers

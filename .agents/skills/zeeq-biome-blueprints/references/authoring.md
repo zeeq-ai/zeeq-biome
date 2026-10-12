@@ -188,7 +188,7 @@ public static class CodeReviewSugar
 
 Use an input when the output has init-only properties (including positional record properties) that tests vary, when one choice drives several values, or when the output is a group of rows. The test customizes a small settable **input**; the factory reads it and builds the row. Production models don't change.
 
-> Ordinary entity outputs and `ChildFromInput` are not in `Zeeq.Biome` 1.0.1; 1.0.1 `FromInput` requires an `IBiomeAggregate` output.
+> Ordinary entity outputs and `ChildFromInput` are in the prerelease `Zeeq.Biome` `1.1.0-rc.1` (pin it explicitly, with the same version for `Zeeq.Biome.EntityFrameworkCore`). They are not in 1.0.1, whose `FromInput` requires an `IBiomeAggregate` output.
 
 ```csharp
 public sealed class EnrollmentInput          // construction data: settable, nothing required
