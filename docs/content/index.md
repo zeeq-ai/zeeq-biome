@@ -1,7 +1,7 @@
 ---
 seo:
   title: Zeeq Biome
-  description: Terse, readable test setup for .NET. A biome is your app's entity graph in miniature, with just the rows one test needs, wired together correctly.
+  description: Terse, readable tests for you and your coding agents. Reusable setup reduces the context needed to author and understand each test.
 ---
 
 ::u-page-hero{class="dark:bg-gradient-to-b from-neutral-900 to-neutral-950"}
@@ -12,10 +12,10 @@ orientation: horizontal
 :hero-background
 
 #title
-Test setup that says [only what the test is about]{.text-primary}.
+Readable tests. [Less context for your agents]{.text-primary}.
 
 #description
-A test often needs several related rows just to check one behavior. **Zeeq Biome** keeps the routine setup in reusable blueprints, so your test can show what matters. Build the graph, choose the values you need, and let defaults fill the rest. For `.NET 10` / `C# 14`.
+Tests give coding agents a way to check that their changes produce the intended behavior. **Zeeq Biome** keeps routine setup in reusable blueprints, making tests terse and readable. With fewer setup details in each test, you and your agents need less context to author and understand it. For `.NET 10` / `C# 14`.
 
 #links
   :::u-button
@@ -63,7 +63,7 @@ A test often needs several related rows just to check one behavior. **Zeeq Biome
 
 ::u-page-section{class="dark:bg-neutral-950"}
 #title
-Keep the setup focused on the behavior.
+Keep the behavior easy to see.
 
 #features
   :::u-page-feature
@@ -145,7 +145,7 @@ Keep the setup focused on the behavior.
       variant: subtle
       icon: i-lucide-library
   title: Start with one test.
-  description: Choose an entity you build often, give it a blueprint, and use it in a test. The quick start walks through each choice.
+  description: Move routine setup into a blueprint so the test is easier for you and your agents to write, read, and check. The quick start walks through each choice.
   class: dark:bg-neutral-950
   ---
 
