@@ -21,6 +21,7 @@
     <RepositoryUrl>https://github.com/zeeq-ai/zeeq-biome</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>logo.png</PackageIcon>
     <PackageTags>testing;test-data;fixtures;seed;entity-graph;builder;efcore;tunit</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
