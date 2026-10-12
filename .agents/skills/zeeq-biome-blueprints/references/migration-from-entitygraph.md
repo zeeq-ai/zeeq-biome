@@ -7,7 +7,7 @@ The source is `zeeq-app/src/backend/Zeeq.Testing/EntityGraph/`: `EntityGraphBuil
 | EntityGraph | Biome |
 |---|---|
 | `EntityGraph.AddGeneratedSeed(_context)` / `SeedContext.Generate()` | `TestBiome.Start(_context, out var seed)`. `SeedContext` itself can be the seed type. |
-| `*Prototype` class + `Create*` method + 2–3 overloads | one blueprint + `Derive`s + the four sugar one-liners. If the entity keeps `init` properties tests vary, the prototype becomes the **input** of an input blueprint (step 3). |
+| `*Prototype` class + `Create*` method + 2–3 overloads | one blueprint + `Derive`s + generated graft methods from a `[BiomeGraft]` catalog. If the entity keeps `init` properties tests vary, the prototype becomes the **input** of an input blueprint (step 3). |
 | `prototype.X ?? default` | factory default, or fill-only `.Derive(e => e.X, …)` |
 | `PersistOnBuild = false` | `.Transient()` after the step, or `bp.AsTransient()` |
 | `FindLatest<CodeRepository>(builder.Entities)` | a child blueprint's typed parent, plus `ctx.Ancestor<CodeRepository>()` |
@@ -58,7 +58,7 @@ zeeq-app entities make many properties `init`. Examples:
 | Tests vary it, and it is `init` | Use an **input blueprint** (`FromInput` / `ChildFromInput`): the prototype's settable properties become the input, and the factory sets the `init` values (step 3). |
 | Tests vary it, and the model already has a `set` | Customize the entity directly. |
 
-An input blueprint with an ordinary entity output, or `ChildFromInput`, needs the prerelease `Zeeq.Biome` `1.1.0-rc.1`; they are not in 1.0.1, so don't pin 1.0.1 expecting them. Pin `1.1.0-rc.1` explicitly for `Zeeq.Biome` and use the same version for `Zeeq.Biome.EntityFrameworkCore`. Aggregates work in both.
+An input blueprint with an ordinary entity output, or `ChildFromInput`, requires a referenced package that exposes those forms. Check the selected package API before recommending an install command, and match the EF Core package version when used. Do not infer a public package version from this branch. Aggregate outputs use the aggregate input form.
 
 ## Step 3: a prototype with derived defaults (`PendingInvitationPrototype`)
 
@@ -170,10 +170,12 @@ await TestBiome.Start(_context, out var seed)
 Before, `AddPullRequestRecords` / `AddCodeReviewRecords` / `AddActiveCodeReviewLocks` each called `FindLatest<…>(builder.Entities)` for their parents, and numbered `index + 1` per call. After:
 
 ```csharp
+[BiomeGraft]
 public static class CodeReviewBlueprints
 {
     public static readonly Sequence<int> PullRequestNumbers = Sequence.Of(1, n => n + 1).Per<CodeRepository>();
 
+    [Graft("CodeRepository", Plural = "CodeRepositories")]
     public static readonly Blueprint<SeedContext, CodeRepository> Repository =
         Blueprint.For<SeedContext, CodeRepository>(ctx =>
             {
@@ -220,6 +222,7 @@ public static class CodeReviewBlueprints
                 $"https://github.com/{ctx.Parent.OwnerQualifiedName}/pull/{pr.PullRequestNumber}")
             .Derive(pr => pr.GitHubNodeId, (_, ctx) => ctx.NewId("PR"));    // was "PR_" + number: collides across repos
 
+    [Graft("CodeReview", Plural = "CodeReviews")]
     public static readonly ChildBlueprint<SeedContext, PullRequestRecord, CodeReviewRecord> Review =
         Blueprint.ChildOf<SeedContext, PullRequestRecord, CodeReviewRecord>((pr, ctx) => new()
         {
@@ -237,6 +240,7 @@ public static class CodeReviewBlueprints
             UpdatedAtUtc = ctx.Now,
         });
 
+    [Graft("ActiveLock", Plural = "ActiveLocks")]
     public static readonly ChildBlueprint<SeedContext, CodeReviewRecord, ActiveCodeReviewLock> ActiveLock =
         Blueprint.ChildOf<SeedContext, CodeReviewRecord, ActiveCodeReviewLock>((review, ctx) =>
         {
@@ -262,18 +266,20 @@ Notes:
 - The child factory reads values from its parent (`pr.Branch`, `pr.Title`). Those are already final, because the parent's `Derive`s ran when the parent's own step completed.
 - An explicit `pr => pr.PullRequestNumber = 10` isn't possible while `PullRequestNumber` is `init`. When tests need to choose the number, make `PullRequestRecord` a typed child input instead: `Blueprint.ChildFromInput<SeedContext, CodeRepository, PullRequestInput, PullRequestRecord>` with `PullRequestInput.Number`, `.Derive(i => i.Number, PullRequestNumbers)` on the input, and `PullRequestNumber = input.Number` in the factory (step 3 shows the pattern). The sequence skips explicit numbers across the whole step.
 
-Then the four sugar one-liners per type (see `authoring.md`), plus the helper the store tests repeat:
+The catalog generates three graft overloads per eligible blueprint with valid names: a singular method with an optional `Action<T>` customizer, a plural method with a count, and a plural method with `params Action<T>[]`. Input blueprints use `TInput` for customizers while `out` and the anchor hold output `T`. Root grafts accept any anchor for the same seed; their count/customizer list applies once at the current anchor. Child grafts require the declared parent's array anchor and fan out per parent. Child counts and customizers apply to each parent; an empty customizer list creates one default per parent, or one default for a root. There are no generated context-aware or no-`out` overloads; use core `Add` / `AddOne` for a one-off context callback.
+
+`[Graft]` supplies app-facing names where a catalog member name is less suitable. `[NoGraft]` leaves helpers, variants or other catalog members out of the generated API. Handwritten `AddX` extensions are for context overloads or other app-specific exceptions. Keep the helper the store tests repeat as a named scenario helper:
 
 ```csharp
-public static class CodeReviewSugar
+public static class CodeReviewScenarioHelpers
 {
     extension(BiomeBuilder<SeedContext, SeedContext> b)
     {
         public BiomeBuilder<SeedContext, ActiveCodeReviewLock[]> AddLockedReview(out ActiveCodeReviewLock activeLock) =>
-            b.AddOne(CodeReviewBlueprints.Repository, out _)
-                .AddOne(CodeReviewBlueprints.PullRequest, out _)
-                .AddOne(CodeReviewBlueprints.Review, out _)
-                .AddOne(CodeReviewBlueprints.ActiveLock, out activeLock);
+            b.AddCodeRepository(out _)
+                .AddPullRequest(out _)
+                .AddCodeReview(out _)
+                .AddActiveLock(out activeLock);
     }
 }
 ```
@@ -301,8 +307,8 @@ _context.ChangeTracker.Clear();
 ```
 
 Mechanical rewrites:
-- `var (seed, x) = await EntityGraph.AddGeneratedSeed(_context).AddX(…).BuildAsync();` becomes `await TestBiome.Start(_context, out var seed).AddX(out var x, …).BuildAsync();`.
-- Tuple discards `_` become `out _`, and `xs[0]` becomes singular sugar.
+- `var (seed, x) = await EntityGraph.AddGeneratedSeed(_context).AddX(…).BuildAsync();` becomes `await TestBiome.Start(_context, out var seed).AddX(out var x, …).BuildAsync();` using the generated graft name.
+- Tuple discards `_` become `out _`, and `xs[0]` becomes the singular graft.
 - `.AddX(p => p.PersistOnBuild = false)` becomes `.AddX(out var x).Transient()`.
 - A prototype customizer `p => p.Prop = v` becomes `e => e.Prop = v` on the entity if `Prop` is settable, or `i => i.Prop = v` on an input blueprint's input if the entity keeps `init` (see step 2).
 - `EntityGraph.SeedWith(seed, _context).Push(existing)` has no direct equivalent: build the entity through a blueprint. `.Under(x)` only accepts Add outputs and seed rows selected by `SeedEntities`, so a hand-built object can't be a parent.

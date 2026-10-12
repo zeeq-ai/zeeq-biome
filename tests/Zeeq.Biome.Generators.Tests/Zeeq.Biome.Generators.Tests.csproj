@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <NoWarn>$(NoWarn);CS1591;CA1707</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="TUnit" />
+    <PackageReference Include="Verify.TUnit" />
+    <PackageReference Include="Verify.SourceGenerators" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Zeeq.Biome/Zeeq.Biome.csproj" />
+    <ProjectReference
+      Include="../../src/Zeeq.Biome.Generators/Zeeq.Biome.Generators.csproj"
+      OutputItemType="Analyzer"
+    />
+  </ItemGroup>
+</Project>

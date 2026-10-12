@@ -1,9 +1,11 @@
 <Solution>
   <Folder Name="/src/">
+    <Project Path="src/Zeeq.Biome.Generators/Zeeq.Biome.Generators.csproj" />
     <Project Path="src/Zeeq.Biome.EntityFrameworkCore/Zeeq.Biome.EntityFrameworkCore.csproj" />
     <Project Path="src/Zeeq.Biome/Zeeq.Biome.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/Zeeq.Biome.Generators.Tests/Zeeq.Biome.Generators.Tests.csproj" />
     <Project Path="tests/Zeeq.Biome.EntityFrameworkCore.Tests/Zeeq.Biome.EntityFrameworkCore.Tests.csproj" />
     <Project Path="tests/Zeeq.Biome.Tests/Zeeq.Biome.Tests.csproj" />
   </Folder>

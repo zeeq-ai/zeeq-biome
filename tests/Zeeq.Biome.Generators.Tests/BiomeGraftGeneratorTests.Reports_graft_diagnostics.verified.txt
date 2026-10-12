@@ -1,0 +1,117 @@
+﻿{
+  Diagnostics: [
+    {
+      Location: /*
+
+[BiomeGraft]
+^^^^^^^^^^^^
+internal class NotStatic { }
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*/
+ : (9,0)-(10,28),
+      Message: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
+      Severity: Error,
+      Descriptor: {
+        Id: BIOME003,
+        Title: Invalid Biome graft catalog,
+        Description: Move the catalog to a top-level static class without type parameters or file-local scope.,
+        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
+        MessageFormat: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
+        Category: Biome graft,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: /*
+
+[BiomeGraft]
+^^^^^^^^^^^^
+internal static class GenericCatalog<T> { }
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+*/
+ : (12,0)-(13,43),
+      Message: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
+      Severity: Error,
+      Descriptor: {
+        Id: BIOME003,
+        Title: Invalid Biome graft catalog,
+        Description: Move the catalog to a top-level static class without type parameters or file-local scope.,
+        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
+        MessageFormat: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
+        Category: Biome graft,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: /*
+{
+    [BiomeGraft]
+    ^^^^^^^^^^^^
+    internal static class Nested { }
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+}
+*/
+ : (17,4)-(18,36),
+      Message: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
+      Severity: Error,
+      Descriptor: {
+        Id: BIOME003,
+        Title: Invalid Biome graft catalog,
+        Description: Move the catalog to a top-level static class without type parameters or file-local scope.,
+        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
+        MessageFormat: [BiomeGraft] supports only top-level, non-generic, non-file-local static classes,
+        Category: Biome graft,
+        DefaultSeverity: Error,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: /*
+    [Graft(Plural = "News")]
+    internal static readonly Blueprint<Seed, News> News = null!;
+                                                   ^^^^
+}
+*/
+ : (31,51)-(31,55),
+      Message: Blueprint member 'News' uses 'News' for both singular and plural; set [Graft(Plural = "...")],
+      Severity: Warning,
+      WarningLevel: 1,
+      Descriptor: {
+        Id: BIOME002,
+        Title: Biome graft plural matches singular,
+        Description: Choose a distinct plural graft suffix with [Graft(Plural = "...")].,
+        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
+        MessageFormat: Blueprint member '{0}' uses '{1}' for both singular and plural; set [Graft(Plural = "...")],
+        Category: Biome graft,
+        DefaultSeverity: Warning,
+        IsEnabledByDefault: true
+      }
+    },
+    {
+      Location: /*
+    [Graft("School")]
+    internal static readonly Blueprint<Seed, School> RootSchool = null!;
+                                                     ^^^^^^^^^^
+
+*/
+ : (25,53)-(25,63),
+      Message: Blueprint members 'RootSchool' and 'ChildSchool' produce overlapping graft overloads on the same builder: AddSchool(out global::GraftDiagnostics.School, global::System.Action<global::GraftDiagnostics.School>?); AddSchools(out global::GraftDiagnostics.School[], int); AddSchools(out global::GraftDiagnostics.School[], params global::System.Action<global::GraftDiagnostics.School>[]),
+      Severity: Warning,
+      WarningLevel: 1,
+      Descriptor: {
+        Id: BIOME001,
+        Title: Biome graft method collision,
+        Description: Rename one graft with [Graft("Name")] so callers can identify the intended blueprint.,
+        HelpLink: https://github.com/zeeq-ai/zeeq-biome/issues/20,
+        MessageFormat: Blueprint members '{0}' and '{1}' produce overlapping graft overloads on the same builder: {2},
+        Category: Biome graft,
+        DefaultSeverity: Warning,
+        IsEnabledByDefault: true
+      }
+    }
+  ]
+}

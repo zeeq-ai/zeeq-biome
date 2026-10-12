@@ -56,6 +56,7 @@ internal static class Submissions
     internal static readonly Action<Submission> Reviewed = s => s.Reviewed = true;
 }
 
+[BiomeGraft]
 internal static class Blueprints
 {
     // Section numbering belongs to the course, even when multiple schools are fanned out.

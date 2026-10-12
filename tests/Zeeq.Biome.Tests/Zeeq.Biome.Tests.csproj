@@ -9,5 +9,10 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Zeeq.Biome/Zeeq.Biome.csproj" />
+    <ProjectReference
+      Include="../../src/Zeeq.Biome.Generators/Zeeq.Biome.Generators.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+    />
   </ItemGroup>
 </Project>
