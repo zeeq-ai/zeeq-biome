@@ -21,6 +21,13 @@ dotnet add package Zeeq.Biome.EntityFrameworkCore   # optional: save with a DbCo
 
 Requires .NET 10 and C# 14. The core package has no dependencies. Works with any test framework; the examples use [TUnit](https://tunit.dev).
 
+Input blueprints for ordinary entities and typed children (see below) are in the prerelease `1.1.0-rc.1`, not in `1.0.1`. Package managers don't select a prerelease by default, so pin it explicitly, and use the same version for the EF Core package:
+
+```sh
+dotnet add package Zeeq.Biome --version 1.1.0-rc.1
+dotnet add package Zeeq.Biome.EntityFrameworkCore --version 1.1.0-rc.1
+```
+
 ## Step by step
 
 The examples model a code-review app: `Organization`, `User`, `CodeRepository` → `PullRequestRecord` → `CodeReviewRecord` → `ActiveCodeReviewLock`. Your entities are plain classes. Entities and parents must be reference types.
@@ -587,7 +594,7 @@ Use hooks sparingly. Rows a test can't see make it harder to read. Rows added in
 
 ### Input blueprints: customize an input, then build the row
 
-> **Availability:** ordinary entity outputs from `FromInput` and `ChildFromInput` are **not in `Zeeq.Biome` 1.0.1**. In 1.0.1, `FromInput` accepts only `IBiomeAggregate` outputs. Use the rest of this section once a release newer than 1.0.1 is published.
+> **Availability:** ordinary entity outputs from `FromInput` and `ChildFromInput` are in the prerelease **`Zeeq.Biome` `1.1.0-rc.1`** and are **not in `1.0.1`**, where `FromInput` accepts only `IBiomeAggregate` outputs. Pin `1.1.0-rc.1` explicitly (and use the same version for `Zeeq.Biome.EntityFrameworkCore`) to use the rest of this section.
 
 A customizer runs after the factory, so it cannot set an init-only property. (A `required` member with a setter can still be customized.) An **input blueprint** lets tests customize a small settable input, then the factory reads it to build the row, so production models stay as they are. If `PullRequestRecord.PullRequestNumber` were `init`, as in zeeq-app's model, it would look like this:
 
