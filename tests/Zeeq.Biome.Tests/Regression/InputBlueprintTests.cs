@@ -405,4 +405,17 @@ public sealed class InputBlueprintTests
     {
         public IEnumerable<object> GetEntities() => [Invitation];
     }
+
+    [Test]
+    public async Task Null_root_input_output_reports_input_factory_and_faults_without_saving()
+    {
+        var store = new RecordingStore();
+        var root = Biome.Start("seed", new BiomeOptions<string>(), store);
+        var bp = Blueprint.FromInput<string, Input, Invitation>(() => new(), (_, _) => null!);
+        var error = Assert.Throws<InvalidOperationException>(() => root.AddOne(bp, out _));
+        await Assert.That(error.Message).IsEqualTo("An input blueprint factory returned null.");
+        await Assert.That(() => root.BuildAsync()).Throws<InvalidOperationException>();
+        await Assert.That(root.All<Invitation>().Count).IsEqualTo(0);
+        await Assert.That(store.Calls).IsEqualTo(0);
+    }
 }

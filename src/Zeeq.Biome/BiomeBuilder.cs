@@ -303,7 +303,9 @@ public sealed class BiomeBuilder<TSeed, TAnchor>
                 }
                 var entity =
                     bp.Factory(input, ctx)
-                    ?? throw new InvalidOperationException("An aggregate factory returned null.");
+                    ?? throw new InvalidOperationException(
+                        "An input blueprint factory returned null."
+                    );
                 outputs.Add((entity, ctx));
             }
             return Session.Complete(outputs, [], bp.IsTransient);
