@@ -7,6 +7,7 @@
   </PropertyGroup>
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../docs/public/logo.png" Pack="true" PackagePath="/" />
     <InternalsVisibleTo Include="Zeeq.Biome.Tests" />
   </ItemGroup>
 </Project>
