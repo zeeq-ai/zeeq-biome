@@ -21,7 +21,7 @@ dotnet add package Zeeq.Biome.EntityFrameworkCore   # optional: save with a DbCo
 
 Targets .NET 10. The core package has no dependencies. The extension-block examples use C# 14; generated graft methods use regular extension methods. Works with any test framework; the examples use [TUnit](https://tunit.dev).
 
-Ordinary-entity input blueprints and typed child inputs require a referenced `Zeeq.Biome` package that exposes those API forms. Check the API for the package selected by your project, and use the matching version for `Zeeq.Biome.EntityFrameworkCore` when needed. This README does not identify a package release for those APIs.
+Ordinary-entity input blueprints and typed child inputs are available in `Zeeq.Biome` 1.1.0 and later. Use the matching version of `Zeeq.Biome.EntityFrameworkCore` when needed.
 
 ## Step by step
 
