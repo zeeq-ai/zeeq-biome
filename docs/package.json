@@ -1,0 +1,46 @@
+{
+  "name": "zeeq-biome-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare",
+    "lint": "eslint .",
+    "typecheck": "nuxt typecheck",
+    "render:logo": "node scripts/render-logo.mjs"
+  },
+  "dependencies": {
+    "@iconify-json/lucide": "^1.2.139",
+    "@iconify-json/simple-icons": "^1.2.98",
+    "@iconify-json/vscode-icons": "^1.2.84",
+    "@nuxt/content": "^3.16.1",
+    "@nuxt/image": "^2.1.0",
+    "@nuxt/ui": "^4.11.3",
+    "@nuxtjs/mdc": "^0.23.2",
+    "@takumi-rs/core": "^2.14.0",
+    "@vueuse/core": "^14.4.0",
+    "minimark": "^0.2.0",
+    "nuxt": "^4.6.0",
+    "nuxt-llms": "0.2.0",
+    "nuxt-og-image": "^6.10.3",
+    "tailwindcss": "^4.3.3",
+    "ufo": "^1.6.4",
+    "unist-util-visit": "^5.1.0",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@nuxt/eslint": "^1.17.0",
+    "eslint": "^10.12.0",
+    "eslint-plugin-better-tailwindcss": "^4.7.0",
+    "sharp": "^0.35.5",
+    "typescript": "^6.0.3",
+    "vue-tsc": "^3.3.12"
+  },
+  "packageManager": "pnpm@12.9.1",
+  "engines": {
+    "node": ">=24 <25"
+  }
+}

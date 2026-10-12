@@ -485,3 +485,11 @@ $RECYCLE.BIN/
 .agents/plans/
 .agents/wip/
 artifacts/
+
+# Docs site (docs/): Nuxt build output and dependencies
+docs/node_modules/
+docs/.nuxt/
+docs/.output/
+docs/.data/
+docs/.nitro/
+docs/dist/

@@ -1,0 +1,21 @@
+# Redeploys the documentation site to GitHub Pages without cutting a release.
+# Releases deploy docs automatically from release.yml.
+
+name: Docs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    name: Deploy documentation
+    # The github-pages environment only accepts deployments from main.
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/docs-deploy.yml
