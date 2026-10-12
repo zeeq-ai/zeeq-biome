@@ -51,6 +51,7 @@ internal sealed record OrganizationGraph(
     public IEnumerable<object> GetEntities() => [Organization, Membership];
 }
 
+[BiomeGraft]
 internal static class Blueprints
 {
     // Root entities use configured IDs; relationship-dependent fields belong in child factories.

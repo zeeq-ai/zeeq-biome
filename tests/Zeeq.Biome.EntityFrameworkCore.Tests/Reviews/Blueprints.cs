@@ -2,6 +2,7 @@ using Zeeq.Biome.EntityFrameworkCore;
 
 namespace Zeeq.Biome.EntityFrameworkCore.Tests.Reviews;
 
+[BiomeGraft]
 internal static class Blueprints
 {
     internal static readonly Sequence<int> Numbers = Sequence
@@ -9,6 +10,7 @@ internal static class Blueprints
         .Per<CodeRepository>();
 
     // Keys are database-generated, so children point at parents through navigations and EF fixes up the FKs.
+    [Graft("CodeRepository", Plural = "CodeRepositories")]
     internal static readonly Blueprint<ReviewSeed, CodeRepository> Repository = Blueprint.For<
         ReviewSeed,
         CodeRepository
@@ -30,6 +32,8 @@ internal static class Blueprints
         )
         .Derive(pr => pr.Number, Numbers)
         .Derive(pr => pr.Title, (pr, _) => $"PR {pr.Number}");
+
+    [Graft("CodeReview", Plural = "CodeReviews")]
     internal static readonly ChildBlueprint<
         ReviewSeed,
         PullRequestRecord,
