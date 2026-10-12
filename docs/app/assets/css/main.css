@@ -7,19 +7,29 @@
   --container-8xl: 90rem;
   --font-sans: 'Public Sans', sans-serif;
 
-  --color-green-50: #effdf5;
-  --color-green-100: #d9fbe8;
-  --color-green-200: #b3f5d1;
-  --color-green-300: #75edae;
-  --color-green-400: #00dc82;
-  --color-green-500: #00c16a;
-  --color-green-600: #00a155;
-  --color-green-700: #007f45;
-  --color-green-800: #016538;
-  --color-green-900: #0a5331;
-  --color-green-950: #052e16;
+  --color-zeeq-50: #fcfde8;
+  --color-zeeq-100: #f7f9c5;
+  --color-zeeq-200: #edf28c;
+  --color-zeeq-300: #e2e94d;
+  --color-zeeq-400: #d3ec13;
+  --color-zeeq-500: #c2d912;
+  --color-zeeq-600: #acbe10;
+  --color-zeeq-700: #87950d;
+  --color-zeeq-800: #646e0b;
+  --color-zeeq-900: #42490a;
+  --color-zeeq-950: #272b07;
 }
 
 :root {
   --ui-container: var(--container-8xl);
+  --zeeq-yellow: #d3ec13;
+  --zeeq-green: #acbe10;
+  --zeeq-gradient: linear-gradient(to top right, var(--zeeq-yellow), var(--zeeq-green));
+}
+
+.brand-gradient-text {
+  background: var(--zeeq-gradient);
+  background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
 }

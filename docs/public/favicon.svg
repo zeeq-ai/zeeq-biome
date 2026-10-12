@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 242 280" role="img" aria-label="Zeeq Biome">
-<defs><linearGradient id="zeeq-biome-favicon-gradient" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#79bd3e"/><stop offset="1" stop-color="#009b48"/></linearGradient></defs>
+<defs><linearGradient id="zeeq-biome-favicon-gradient" x1="0" y1="1" x2="1" y2="0"><stop stop-color="#d3ec13"/><stop offset="1" stop-color="#acbe10"/></linearGradient></defs>
 <title>Zeeq Biome</title>
 <path fill="none" stroke="url(#zeeq-biome-favicon-gradient)" stroke-width="38" stroke-linejoin="miter" d="M182 52H110C62 52 44 68 44 117V140H119C167 140 182 124 182 78Z M44 140H126C189 140 208 158 208 211V230H112C61 230 44 198 44 165Z"/>
 </svg>

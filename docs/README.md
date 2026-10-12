@@ -43,7 +43,7 @@ Releases deploy the site automatically (`.github/workflows/release.yml` -> `docs
 
 ## Logo
 
-`public/logo.svg` is the mark: a leaf-shaped **B** with a green gradient (`#79bd3e` to `#009b48`), a wider lower leaf and a uniform 38-unit stroke. `public/favicon.svg` has the same geometry with its own gradient id. `logo.png` (256px), `favicon.ico` (16/32/48) and `apple-touch-icon.png` (180px) are rendered from them:
+`public/logo.svg` is the mark: a leaf-shaped **B** with a Zeeq yellow-to-green gradient (`#d3ec13` to `#acbe10`), a wider lower leaf and a uniform 38-unit stroke. `public/favicon.svg` has the same geometry with its own gradient id. `logo.png` (256px), `favicon.ico` (16/32/48) and `apple-touch-icon.png` (180px) are rendered from them:
 
 ```sh
 pnpm run render:logo     # scripts/render-logo.mjs, uses sharp

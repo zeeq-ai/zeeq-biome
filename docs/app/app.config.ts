@@ -1,7 +1,7 @@
 export default defineAppConfig({
   ui: {
     colors: {
-      primary: 'green',
+      primary: 'zeeq',
       neutral: 'zinc'
     },
     footer: {
@@ -37,7 +37,7 @@ export default defineAppConfig({
     }]
   },
   footer: {
-    credits: `Zeeq Biome • MIT License • © ${new Date().getFullYear()} Zeeq`,
+    credits: `Zeeq Biome • MIT License • © ${new Date().getFullYear()} Zeeq Labs, Inc.`,
     colorMode: false,
     links: [{
       'icon': 'i-simple-icons-github',
