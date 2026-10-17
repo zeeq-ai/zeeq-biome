@@ -15,7 +15,7 @@ orientation: horizontal
 Readable tests. [Less context for your agents]{.text-primary}.
 
 #description
-Tests give coding agents a way to check that their changes produce the intended behavior. **Zeeq Biome** keeps routine setup in reusable blueprints, making tests terse and readable. With fewer setup details in each test, you and your agents need less context to author and understand it. It targets .NET 10; the extension-block examples use C# 14.
+A small framework that let's humans and agents write terse, low-boilerplates, consistent, semantically easy-to-read, and context efficient tests for C# and .NET.
 
 #links
   :::u-button
@@ -52,11 +52,20 @@ Tests give coding agents a way to check that their changes produce the intended 
     - 3
   ---
 
-  ```csharp [CodeReviewTests.cs] {3}
+  ```csharp [CodeReviewTests.cs]
+  // Consistent, automatic seed generation
   await TestBiome.Start(_db, out var seed)
-      .AddCodeRepository(out var repo)
-      .AddPullRequest(out var pr, p => p.State = PullRequestState.Closed)
-      .BuildAsync();
+    // Add a single entry to the graph
+    .AddCodeRepository(out var repo)
+    // Add a child entity to the graph and customize
+    // the setup for the situation under test
+    .AddPullRequest(
+      out var pr,
+      p => p.State = PullRequestState.Closed
+    )
+    .BuildAsync();
+
+  // Get back a fully initialized entity graph for test
   ```
   :::
 ::

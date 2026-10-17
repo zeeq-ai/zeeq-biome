@@ -3,5 +3,9 @@
   "debug.javascript.defaultRuntimeExecutable": {
     "pwa-node": "/Users/cchen/.local/share/mise/shims/node"
   },
-  "oxc.path.node": "/Users/cchen/.local/share/mise/shims/node"
+  "oxc.path.node": "/Users/cchen/.local/share/mise/shims/node",
+  "[markdown]": {
+    "editor.defaultFormatter": null,
+    "editor.formatOnSave": false
+  }
 }
