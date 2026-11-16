@@ -8,6 +8,7 @@ description: Use when creating or changing Zeeq.Biome test infrastructure. That 
 - Templates and API detail: `.agents/skills/zeeq-biome-blueprints/references/authoring.md`.
 - Migrating from zeeq-app `EntityGraph`: `.agents/skills/zeeq-biome-blueprints/references/migration-from-entitygraph.md`.
 - The public API is in `src/Zeeq.Biome/` and living examples are in `tests/Zeeq.Biome.Tests/` (`CodeReviews/`, `Membership/`, `Board/`, `CustomSeed/`).
+Compatibility: upcoming package assets will target .NET 8, .NET 9, and .NET 10. The EF package minimums are EF Core 8.0.11, 9.0.0, and 10.0.0 for the matching target. Consumers need a C# 14 compiler for core extension-block APIs; the .NET 10 SDK supplies Roslyn 5 and is needed to build this repo. Seed examples using `Guid.CreateVersion7` need .NET 9+. On .NET 8, use the app's UUIDv7 helper for seed IDs; blueprint factories can use `ctx.NewId` on all targets.
 
 ## What to write, per entity type
 

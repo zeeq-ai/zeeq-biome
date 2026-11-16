@@ -93,8 +93,8 @@ internal static class TestBiome
     )
     {
         seed = new(
-            new() { Id = $"org_{Guid.CreateVersion7():N}" },
-            new() { Id = $"user_{Guid.CreateVersion7():N}" }
+            new() { Id = $"org_{Uuid.CreateVersion7():N}" },
+            new() { Id = $"user_{Uuid.CreateVersion7():N}" }
         );
         return Biome.Start(seed, Options, db.AsBiomeStore(), time);
     }

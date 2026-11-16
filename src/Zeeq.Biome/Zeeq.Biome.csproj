@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <PackageId>Zeeq.Biome</PackageId>
@@ -9,6 +10,7 @@
     <None Include="../../README.md" Pack="true" PackagePath="/" />
     <None Include="../../docs/public/logo.png" Pack="true" PackagePath="/" />
     <InternalsVisibleTo Include="Zeeq.Biome.Tests" />
+    <InternalsVisibleTo Include="Zeeq.Biome.EntityFrameworkCore.Tests" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference
