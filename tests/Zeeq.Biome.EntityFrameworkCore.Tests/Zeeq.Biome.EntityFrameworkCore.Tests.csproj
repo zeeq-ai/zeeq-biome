@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+    <TargetFrameworks>net8.0;net9.0;net10.0;net11.0</TargetFrameworks>
     <OutputType>Exe</OutputType>
     <NoWarn>$(NoWarn);CS1591;CA1707</NoWarn>
   </PropertyGroup>
@@ -13,8 +13,14 @@
       VersionOverride="$(EfCoreTestVersion)"
     />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+  <!-- Npgsql 11 RC pins EF's RC assemblies. Keep EF 11 GA validation on SQLite until its provider ships (#32). -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net11.0'">
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="Testcontainers.PostgreSql" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <Compile Remove="PostgresTimeTests.cs;Infrastructure/PostgresFixture.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Zeeq.Biome.EntityFrameworkCore/Zeeq.Biome.EntityFrameworkCore.csproj" />

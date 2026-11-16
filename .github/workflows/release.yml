@@ -140,6 +140,7 @@ jobs:
           dotnet-version: |
             8.0.x
             9.0.x
+            10.0.x
 
       - name: Restore tools
         run: dotnet tool restore
@@ -180,6 +181,7 @@ jobs:
           dotnet-version: |
             8.0.x
             9.0.x
+            10.0.x
 
       - name: Pack release
         run: dotnet pack zeeq-biome.slnx -c Release -p:Version=${{ needs.plan.outputs.version }} -o artifacts

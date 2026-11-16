@@ -1,6 +1,6 @@
 # Zeeq Biome Testing Utility Library for .NET
 
-- Uses C# 14, .NET 10; modern language features
+- Uses C# 15 and the .NET 11 SDK; packages target .NET 8, 9, 10, and 11
   - Extension blocks, source generators, tuples, pattern matching, collection expressions, etc.
   - Uses `TUnit` for testing (not `XUnit`).
 - Intended to help teams write unit tests that are more terse, clear, and readable by both humans and agents by isolating repeated boilerplate code in test scenario setup
