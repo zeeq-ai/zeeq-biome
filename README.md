@@ -27,7 +27,9 @@ dotnet add package Zeeq.Biome
 dotnet add package Zeeq.Biome.EntityFrameworkCore   # optional: save with a DbContext
 ```
 
-Targets .NET 10. The core package has no dependencies. The extension-block examples use C# 14; generated graft methods use regular extension methods. Works with any test framework; the examples use [TUnit](https://tunit.dev).
+Multi-target package assets for .NET 8, .NET 9, and .NET 10 are upcoming and will ship in a release. The core package has no dependencies. The EF integration will use EF Core 8.0.11, 9.0.0, or 10.0.0 for the matching target.
+
+Consumers need a C# 14 compiler for core extension-block APIs, including APIs used by generated graft methods. Use the .NET 10 SDK / Roslyn 5 to build this repository. Graft methods generated for consumers are regular extension methods. Seed examples using `Guid.CreateVersion7` require .NET 9+; on .NET 8, use your app's UUIDv7 helper. Blueprint factories can use `ctx.NewId` on all targets.
 
 Ordinary-entity input blueprints and typed child inputs are available in `Zeeq.Biome` 1.1.0 and later. Use the matching version of `Zeeq.Biome.EntityFrameworkCore` when needed.
 

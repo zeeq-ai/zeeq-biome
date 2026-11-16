@@ -95,7 +95,7 @@ export default defineNuxtConfig({
     description: 'Terse, readable test setup for .NET. A biome is your app\'s entity graph in miniature: just the rows one test needs, wired together correctly.',
     full: {
       title: 'Zeeq Biome - Full Documentation',
-      description: 'The full documentation for Zeeq Biome, a .NET 10 / C# 14 test-setup library.'
+      description: 'The full documentation for Zeeq Biome, a .NET 8 / 9 / 10 test-setup library with C# 14 examples.'
     },
     sections: [
       {

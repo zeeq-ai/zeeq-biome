@@ -16,7 +16,7 @@ public sealed class BiomeOptions<TSeed>
     [];
     internal TimeSpan Precision { get; private set; } = TimeSpan.FromTicks(10);
     internal Func<string, string> NewId { get; private set; } =
-        prefix => $"{prefix}_{Guid.CreateVersion7():N}";
+        prefix => $"{prefix}_{Uuid.CreateVersion7():N}";
 
     /// <summary>Selects baseline rows to persist before created entities.</summary>
     /// <remarks>Evaluated and snapshotted once at Biome.Start. Directly selected references qualify as session-owned parents for Under. Aggregate parts are expanded only for persistence and are not automatically tracked as parents. Null selected entries are rejected.</remarks>

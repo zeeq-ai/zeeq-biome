@@ -85,7 +85,7 @@ public sealed class PostgresTimeTests(PostgresFixture postgres)
         await using var db = postgres.CreateContext();
         var repo = new CodeRepository
         {
-            Organization = new() { Id = $"org_{Guid.CreateVersion7():N}" },
+            Organization = new() { Id = $"org_{Uuid.CreateVersion7():N}" },
             CreatedAt = SubMicrosecond,
         };
         db.Add(repo);

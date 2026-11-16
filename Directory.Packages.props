@@ -3,13 +3,33 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
+  <!-- Match EF Core's major version to the runtime; keep library minimums separate from test patches. -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net8.0'">
+    <!-- 8.0.0 brings vulnerable Caching.Memory; 8.0.11 requires the patched dependency. -->
+    <EfCoreVersion>8.0.11</EfCoreVersion>
+    <EfCoreTestVersion>8.0.34</EfCoreTestVersion>
+    <NpgsqlEfCoreVersion>8.0.11</NpgsqlEfCoreVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net9.0'">
+    <EfCoreVersion>9.0.0</EfCoreVersion>
+    <EfCoreTestVersion>9.0.23</EfCoreTestVersion>
+    <NpgsqlEfCoreVersion>9.0.4</NpgsqlEfCoreVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <EfCoreVersion>10.0.0</EfCoreVersion>
+    <EfCoreTestVersion>10.0.10</EfCoreTestVersion>
+    <NpgsqlEfCoreVersion>10.0.2</NpgsqlEfCoreVersion>
+  </PropertyGroup>
   <ItemGroup>
     <!-- Library dependencies: keep at the lowest supported version for broad adoption. -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(EfCoreVersion)" />
 
     <!-- Test-only dependencies. -->
-    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
-    <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="$(EfCoreTestVersion)" />
+    <PackageVersion
+      Include="Npgsql.EntityFrameworkCore.PostgreSQL"
+      Version="$(NpgsqlEfCoreVersion)"
+    />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.12.0" />
     <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.3.0" />
     <PackageVersion Include="TUnit" Version="1.56.0" />
