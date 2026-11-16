@@ -20,6 +20,10 @@
     <EfCoreTestVersion>10.0.10</EfCoreTestVersion>
     <NpgsqlEfCoreVersion>10.0.2</NpgsqlEfCoreVersion>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net11.0'">
+    <EfCoreVersion>11.0.0</EfCoreVersion>
+    <EfCoreTestVersion>11.0.0</EfCoreTestVersion>
+  </PropertyGroup>
   <ItemGroup>
     <!-- Library dependencies: keep at the lowest supported version for broad adoption. -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="$(EfCoreVersion)" />

@@ -28,6 +28,10 @@ pnpm lint && pnpm typecheck
 | `NUXT_APP_BASE_URL` | `/zeeq-biome/` (`/` in `pnpm dev`) | Base path the site is served from |
 | `NUXT_PUBLIC_SITE_URL` | `https://zeeq-ai.github.io` | Origin used for canonical links and OG tags |
 
+## .NET 11 local test matrix
+
+Build this repository with .NET SDK 11.0.100 and C# 15. The public APIs and shipped generator remain C# 14 / Roslyn 5; do not add C# 15-only syntax to them. The .NET 11 test target runs with SQLite. Keep PostgreSQL tests on .NET 8, 9, and 10 until Npgsql 11 reaches GA: Npgsql 11 RC3 requires the matching EF Core 11 RC3, which is incompatible with EF Core 11 GA. [Issue #32](https://github.com/zeeq-ai/zeeq-biome/issues/32) tracks adding the four PostgreSQL cases to .NET 11.
+
 ## Writing content
 
 Pages live in `content/`. Numeric prefixes (`01.`, `02.`) set the order in the sidebar; use two digits when a folder has more than nine pages. Conventions:
