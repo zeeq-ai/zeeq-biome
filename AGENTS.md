@@ -9,8 +9,8 @@
 
 ## Key Principles
 
-- Value concise, terse writing: core source, examples, docs, writing
-- Always think about how to improve ergonomics, reduce repetition, reduce cognitive load for all parties when reading code
+- Value concise, terse, direct writing: core source, examples, docs, writing
+- Always think about how to improve ergonomics, reduce repetition, reduce cognitive load for all parties when reading code and docs in this codebase
 - Prioritize readability and maintainability over cleverness
 - Leverage static analysis when possible to signal early failures for consumers of this toolkit:
   - Use types and structural organization of code (e.g. generics, interfaces, composition, C#'s type inference)
@@ -29,12 +29,16 @@
 - Keep the `./docs` updated when making changes
   - An undocumented change to the external API is a risk and a hidden feature
   - Use clear examples, highlight source lines, and use inline comments to explain
-  - Consistency is important in writing style, voice, and formatting
-  - Don't immediately arrive at the conclusion; guide the reasoning and peel the layers of "why"
-  - Don't just assume "better", also explain the gap that was closed
-  - Examples are useless if reader has to guess
+    - Highly *after* formatting because formatting changes lines
+    - Check highlighting with visual check and confirm
+    - Highlighted code likely benefits from a short comment explaining
+  - Consistency is important in writing style, tone of voice, and formatting
+  - Do not immediately arrive at the conclusion; guide the reasoning and peel the layers of "why" for the reader
+  - Do not just assume "better", also explain the gap that was closed
+  - Examples are useless if reader has to guess; well named entities and members, inline comments
   - `./docs/content/4.reference/1.api-cheat-sheet.md` is good starting point (and keep it updated with tips for future travelers)
 - Read `./docs` for current state and philosophy
+- Biome is intended to be a fluent API, type-enforced call path
 - Use Paseo skills when operating in Paseo environment
   - Use Paseo built-in browser if available
 - If in Paseo and possible to work with peers:
