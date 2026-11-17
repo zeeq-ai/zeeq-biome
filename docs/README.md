@@ -36,7 +36,7 @@ Build this repository with .NET SDK 11.0.100 and C# 15. The public APIs and ship
 
 Pages live in `content/`. Numeric prefixes (`01.`, `02.`) set the order in the sidebar; use two digits when a folder has more than nine pages. Conventions:
 
-- Code blocks carry a label and highlight only the lines that carry the point: ` ```csharp [File.cs] {3-5} `.
+- Label code blocks and highlight the lines that demonstrate the point in the preceding text. Use a single range for a whole operation and add a short comment explaining why it matters. Format the snippet before setting the line numbers, as in ` ```csharp [File.cs] {3-5} `.
 - Use `::code-group` for alternatives. For a "With Biome" / "Without Biome" comparison, the long tab is a collapsed `::code-collapse{label="Without Biome" name="setup"}` placed inside the group.
 - Callouts: `::note`, `::tip`, `::warning`, `::caution` (there is no `::important`).
 - Prefer snippets copied from `tests/`, and never document an API that does not exist in `src/`.
