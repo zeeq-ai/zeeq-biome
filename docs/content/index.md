@@ -43,29 +43,30 @@ A small framework that let's humans and agents write terse, low-boilerplates, co
   :::prose-pre
   ---
   code: |
-    await TestBiome.Start(_db, out var seed)
-        .AddCodeRepository(out var repo)
-        .AddPullRequest(out var pr, p => p.State = PullRequestState.Closed)
+    await TestBiome
+        .Start(_db, out _)
+        .AddDistrict(out _)
+        .AddSchool(out _)
+        // Fill all three seats so the test can check capacity.
+        .AddClass(out var schoolClass, c => c.Capacity = 3)
+        .AddStudents(out var students, 3)
         .BuildAsync();
-  filename: CodeReviewTests.cs
+  filename: ClassCapacityTests.cs
   highlights:
-    - 3
+    - 5
+    - 6
+    - 7
   ---
 
-  ```csharp [CodeReviewTests.cs]
-  // Consistent, automatic seed generation
-  await TestBiome.Start(_db, out var seed)
-    // Add a single entry to the graph
-    .AddCodeRepository(out var repo)
-    // Add a child entity to the graph and customize
-    // the setup for the situation under test
-    .AddPullRequest(
-      out var pr,
-      p => p.State = PullRequestState.Closed
-    )
-    .BuildAsync();
-
-  // Get back a fully initialized entity graph for test
+  ```csharp [ClassCapacityTests.cs] {5-7}
+  await TestBiome
+      .Start(_db, out _)
+      .AddDistrict(out _)
+      .AddSchool(out _)
+      // Fill all three seats so the test can check capacity.
+      .AddClass(out var schoolClass, c => c.Capacity = 3)
+      .AddStudents(out var students, 3)
+      .BuildAsync();
   ```
   :::
 ::
