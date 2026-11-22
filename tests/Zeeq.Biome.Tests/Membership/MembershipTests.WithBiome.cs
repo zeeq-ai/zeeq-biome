@@ -2,10 +2,10 @@ using Zeeq.Biome;
 
 namespace Zeeq.Biome.Tests.Membership;
 
-public sealed class MembershipTests
+public sealed partial class MembershipTests
 {
     [Test]
-    public async Task Aliases_fan_out_per_user_and_normalization_is_fill_only()
+    public async Task Aliases_fan_out_per_user_and_normalization_is_fill_only_with_biome()
     {
         // Aliases for two users: every customizer fans out per parent; explicit normalization survives Derive.
         // Arrange: Use two users and two alias delegates to make the parent multiplication visible.
@@ -37,7 +37,7 @@ public sealed class MembershipTests
     }
 
     [Test]
-    public async Task Invitation_expiry_uses_customized_creation_time_and_preserves_override()
+    public async Task Invitation_expiry_uses_customized_creation_time_and_preserves_override_with_biome()
     {
         // Invitation deadlines: derive from customized creation time, while explicit expiry wins.
         // Arrange: Choose a historical creation time instead of depending on the wall clock.
@@ -65,7 +65,7 @@ public sealed class MembershipTests
     }
 
     [Test]
-    public async Task Organization_inputs_build_aggregates_then_expand_to_rows_in_order()
+    public async Task Organization_inputs_build_aggregates_then_expand_to_rows_in_order_with_biome()
     {
         // Organization setup inputs: customizers build aggregate wrappers, which expand to ordered persistence rows.
         // Arrange: Keep the seed owner, root builder, and recording store.
@@ -99,7 +99,7 @@ public sealed class MembershipTests
     }
 
     [Test]
-    public async Task Input_variants_apply_traits_then_customizers_then_derivations_and_can_be_transient()
+    public async Task Input_variants_apply_traits_then_customizers_then_derivations_and_can_be_transient_with_biome()
     {
         // An organization preview: immutable traits precede customizers, and transient aggregate parts are not saved.
         // Arrange: Create an immutable preview variant with two traits and a fill-only fallback.
@@ -125,7 +125,7 @@ public sealed class MembershipTests
     }
 
     [Test]
-    public async Task Blueprint_variants_leave_original_unchanged_and_empty_string_is_explicit()
+    public async Task Blueprint_variants_leave_original_unchanged_and_empty_string_is_explicit_with_biome()
     {
         // VIP and ordinary users: blueprint variants are immutable; empty string counts as explicitly set.
         // Arrange: Compare a VIP variant with its original user blueprint.

@@ -2,10 +2,10 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace Zeeq.Biome.Tests.ProjectManagement;
 
-public sealed class ProjectManagementTests
+public sealed partial class ProjectManagementTests
 {
     [Test]
-    public async Task Portfolio_tree_and_comment_siblings_build_six_levels_with_many_leaves()
+    public async Task Portfolio_tree_and_comment_siblings_build_six_levels_with_many_leaves_with_biome()
     {
         // A multi-workspace portfolio: six levels, three rank scopes, and sibling comments.
         // Arrange: a recording store makes the creation order visible independently of inspection.
@@ -48,7 +48,7 @@ public sealed class ProjectManagementTests
     }
 
     [Test]
-    public async Task Local_ranks_skip_explicit_values_while_tickets_span_sibling_columns()
+    public async Task Local_ranks_skip_explicit_values_while_tickets_span_sibling_columns_with_biome()
     {
         // Two columns share a workspace ticket sequence but have independent local rank sequences.
         // Arrange: the sequence scope is declared in Domain.cs, not chosen by Under or a customizer.
@@ -89,7 +89,7 @@ public sealed class ProjectManagementTests
     }
 
     [Test]
-    public async Task Ready_checklist_helper_and_transient_comment_use_live_time()
+    public async Task Ready_checklist_helper_and_transient_comment_use_live_time_with_biome()
     {
         // A default six-level branch plus a preview-only comment after a fake-clock advance.
         // Arrange: retain the store and root builder to compare persisted and created entities.

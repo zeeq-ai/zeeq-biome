@@ -2,10 +2,10 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace Zeeq.Biome.Tests.Commerce;
 
-public sealed class CommerceTests
+public sealed partial class CommerceTests
 {
     [Test]
-    public async Task Fulfilment_tree_fans_out_and_checkout_inputs_are_sibling_transients()
+    public async Task Fulfilment_tree_fans_out_and_checkout_inputs_are_sibling_transients_with_biome()
     {
         // A busy store: a five-level graph, historical tracking, and transient request DTOs.
         // Arrange: keep the starting builder for inspection after the anchor reaches a leaf.
@@ -52,7 +52,7 @@ public sealed class CommerceTests
     }
 
     [Test]
-    public async Task Cancelled_orders_and_explicit_numbers_keep_customer_and_parent_scopes_distinct()
+    public async Task Cancelled_orders_and_explicit_numbers_keep_customer_and_parent_scopes_distinct_with_biome()
     {
         // A cancelled priority order alongside normal orders: traits, skipping, and resumed scopes.
         // Arrange: one session owns progression even when Under revisits an earlier branch.
@@ -89,7 +89,7 @@ public sealed class CommerceTests
     }
 
     [Test]
-    public async Task Tracked_order_helper_and_live_clock_build_a_later_checkpoint()
+    public async Task Tracked_order_helper_and_live_clock_build_a_later_checkpoint_with_biome()
     {
         // A tiny helper hides a default five-level branch; a live clock then records a later event.
         // Arrange: pass the provider once to the domain wrapper, not to each blueprint.
