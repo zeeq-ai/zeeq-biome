@@ -1,9 +1,9 @@
 namespace Zeeq.Biome.Tests.Board;
 
-public sealed class BoardTests
+public sealed partial class BoardTests
 {
     [Test]
-    public async Task Ranks_progress_per_parent_and_under_resumes_sibling_branches()
+    public async Task Ranks_progress_per_parent_and_under_resumes_sibling_branches_with_biome()
     {
         // Board siblings: PerParent ranks resume under old columns and restart under new ones.
         // Arrange: Keep earlier board/column outputs for sibling navigation.
@@ -41,7 +41,7 @@ public sealed class BoardTests
     }
 
     [Test]
-    public async Task Explicit_rank_is_reserved_only_in_its_parent_scope()
+    public async Task Explicit_rank_is_reserved_only_in_its_parent_scope_with_biome()
     {
         // Local rank reservations: one column’s explicit rank cannot consume another column’s sequence.
         // Arrange: Create two columns with independently scoped rank progression.

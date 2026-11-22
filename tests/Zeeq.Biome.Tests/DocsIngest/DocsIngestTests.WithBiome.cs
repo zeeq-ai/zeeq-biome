@@ -2,10 +2,10 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace Zeeq.Biome.Tests.DocsIngest;
 
-public sealed class DocsIngestTests
+public sealed partial class DocsIngestTests
 {
     [Test]
-    public async Task Search_corpus_fans_out_and_ingest_aggregate_expands_after_document_rows()
+    public async Task Search_corpus_fans_out_and_ingest_aggregate_expands_after_document_rows_with_biome()
     {
         // A searchable corpus: four levels plus an aggregate run with one status per document.
         // Arrange: keep the store to observe expansion order separately from wrapper inspection.
@@ -49,7 +49,7 @@ public sealed class DocsIngestTests
     }
 
     [Test]
-    public async Task Archived_sensitive_documents_skip_explicit_versions_and_resume_sibling_branches()
+    public async Task Archived_sensitive_documents_skip_explicit_versions_and_resume_sibling_branches_with_biome()
     {
         // An archived private corpus: stacked traits, an explicit version, and a later sibling ingest.
         // Arrange: versions are scoped on the definition, so blueprint variants share progression.
@@ -91,7 +91,7 @@ public sealed class DocsIngestTests
     }
 
     [Test]
-    public async Task Searchable_chunk_helper_and_transient_ingest_preview_use_live_time()
+    public async Task Searchable_chunk_helper_and_transient_ingest_preview_use_live_time_with_biome()
     {
         // A default searchable leaf plus a preview aggregate: live time and recursive transient exclusion.
         // Arrange: a helper gives the leaf without losing inspectable ancestors.

@@ -3,10 +3,10 @@ using Zeeq.Biome;
 
 namespace Zeeq.Biome.Tests.CodeReviews;
 
-public sealed class CodeReviewTests
+public sealed partial class CodeReviewTests
 {
     [Test]
-    public async Task Linear_chain_and_scenario_helper_keep_typed_relationships()
+    public async Task Linear_chain_and_scenario_helper_keep_typed_relationships_with_biome()
     {
         // A locked review: a named recipe traverses four levels while typed parents preserve relationships.
         // Arrange: Keep a recording store and the root builder for post-save inspection.
@@ -27,7 +27,7 @@ public sealed class CodeReviewTests
     }
 
     [Test]
-    public async Task Numbers_resume_across_calls_and_blueprint_variants_per_repository()
+    public async Task Numbers_resume_across_calls_and_blueprint_variants_per_repository_with_biome()
     {
         // Two repositories: sequence scope is declared on the sequence, so variants and later adds share progression.
         // Arrange: Reuse one declared sequence through an immutable closed-PR variant.
@@ -61,7 +61,7 @@ public sealed class CodeReviewTests
     }
 
     [Test]
-    public async Task Explicit_values_are_reserved_before_unset_values_even_when_later_in_step()
+    public async Task Explicit_values_are_reserved_before_unset_values_even_when_later_in_step_with_biome()
     {
         // Reserved PR numbers: explicit values are skipped by the sequence before any unset output is filled.
         // Arrange: Use one repository to make all four PR customizers share a sequence scope.
@@ -94,7 +94,7 @@ public sealed class CodeReviewTests
     }
 
     [Test]
-    public async Task Explicit_high_value_does_not_advance_sequence_and_custom_title_survives()
+    public async Task Explicit_high_value_does_not_advance_sequence_and_custom_title_survives_with_biome()
     {
         // An externally numbered PR: call site wins, nothing overwrites, and an explicit value does not advance progression.
         // Arrange: Model an externally supplied number/title on an otherwise default repository.
@@ -126,7 +126,7 @@ public sealed class CodeReviewTests
     }
 
     [Test]
-    public async Task Commas_create_entities_and_combined_traits_stack_on_one_entity()
+    public async Task Commas_create_entities_and_combined_traits_stack_on_one_entity_with_biome()
     {
         // Closed and merged PRs: commas create separate entities; + stacks traits on one entity.
         // Arrange: Use plain delegates as reusable PR traits.
@@ -152,7 +152,7 @@ public sealed class CodeReviewTests
     }
 
     [Test]
-    public async Task Transient_marks_most_recent_step_even_when_using_an_earlier_builder()
+    public async Task Transient_marks_most_recent_step_even_when_using_an_earlier_builder_with_biome()
     {
         // Unsaved PR inputs: Transient targets the session’s latest Add step, regardless of the builder used.
         // Arrange: Keep the original builder and a store to compare inspection with persistence.
@@ -170,7 +170,7 @@ public sealed class CodeReviewTests
     }
 
     [Test]
-    public async Task Default_clock_is_frozen_and_precision_rounded()
+    public async Task Default_clock_is_frozen_and_precision_rounded_with_biome()
     {
         // Time-stable setup: the default clock is captured once and rounded to database-friendly precision.
         // Arrange: Start a session without a supplied time provider.
@@ -187,7 +187,7 @@ public sealed class CodeReviewTests
     }
 
     [Test]
-    public async Task Supplied_clock_is_live_and_now_ago_fromnow_are_rounded()
+    public async Task Supplied_clock_is_live_and_now_ago_fromnow_are_rounded_with_biome()
     {
         // A time-sensitive review: a shared fake provider is live, while every source of now is rounded.
         // Arrange: Give the fake clock sub-microsecond ticks to expose truncation.
@@ -220,7 +220,7 @@ public sealed class CodeReviewTests
     }
 
     [Test]
-    public async Task Child_context_exposes_parent_indices_and_accepts_base_context_traits()
+    public async Task Child_context_exposes_parent_indices_and_accepts_base_context_traits_with_biome()
     {
         // Context-aware fan-out: base-context traits also work on children; parent and child indices remain distinct.
         // Arrange: Define one trait against the base context and collect child fan-out positions.

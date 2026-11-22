@@ -2,10 +2,10 @@ using Microsoft.Extensions.Time.Testing;
 
 namespace Zeeq.Biome.Tests.Learning;
 
-public sealed class LearningTests
+public sealed partial class LearningTests
 {
     [Test]
-    public async Task District_tree_builds_six_levels_and_rosters_cross_section_boundaries()
+    public async Task District_tree_builds_six_levels_and_rosters_cross_section_boundaries_with_biome()
     {
         // A district assessment graph: six levels, course-wide rosters, local assignments/attempts.
         // Arrange: no provider means every factory shares one frozen, rounded now.
@@ -45,7 +45,7 @@ public sealed class LearningTests
     }
 
     [Test]
-    public async Task Explicit_sections_grades_and_draft_submissions_preserve_call_site_intent()
+    public async Task Explicit_sections_grades_and_draft_submissions_preserve_call_site_intent_with_biome()
     {
         // A course with numbered sections and graded attempts; a later draft stays out of persistence.
         // Arrange: use a store to distinguish a transient draft from a stored submission.
@@ -82,7 +82,7 @@ public sealed class LearningTests
     }
 
     [Test]
-    public async Task Late_submission_helper_and_policy_share_one_fake_time_provider()
+    public async Task Late_submission_helper_and_policy_share_one_fake_time_provider_with_biome()
     {
         // A late assignment policy: the same clock drives both Biome setup and the tiny SUT.
         // Arrange: start one hour before the deadline and build an eager, six-level late scenario.
